@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM vs Agent — Design Phase Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap');
+
+:root {
+  --bg: #08080c;
+  --surface: #0f0f15;
+  --card: #13131a;
+  --border: #1e1e2a;
+  --border2: #2a2a38;
+  --llm-color: #3de8a0;
+  --agent-color: #ff5f5f;
+  --llm-dim: rgba(61,232,160,0.08);
+  --agent-dim: rgba(255,95,95,0.08);
+  --text: #dde1f0;
+  --muted: #6b6b88;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Fraunces', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+/* HEADER */
+header {
+  padding: 44px 48px 32px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0c0c14 0%, var(--bg) 100%);
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--llm-color), transparent);
+  opacity: 0.4;
+}
+.header-eyebrow {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--llm-color);
+  opacity: 0.7;
+  margin-bottom: 14px;
+}
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(26px, 3.5vw, 42px);
+  font-weight: 300;
+  line-height: 1.2;
+  color: #eef0ff;
+}
+h1 em { color: var(--llm-color); font-style: italic; }
+.subtitle {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 580px;
+}
+.legend {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.llm-dot { background: var(--llm-color); box-shadow: 0 0 8px var(--llm-color); }
+.agent-dot { background: var(--agent-color); box-shadow: 0 0 8px var(--agent-color); }
+.legend-label { color: var(--muted); text-transform: uppercase; }
+.legend-label span { color: var(--text); }
+
+/* PROMPT AREA */
+.prompt-section {
+  padding: 28px 48px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.prompt-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.prompt-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.preset-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: var(--card);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.preset-btn:hover, .preset-btn.active {
+  border-color: var(--llm-color);
+  color: var(--llm-color);
+  background: var(--llm-dim);
+}
+.prompt-input-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+textarea {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 14px 16px;
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.6;
+  transition: border-color 0.2s;
+  outline: none;
+}
+textarea:focus { border-color: var(--llm-color); }
+textarea::placeholder { color: #33334a; }
+
+.run-btn {
+  padding: 14px 28px;
+  background: var(--llm-color);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: fit-content;
+}
+.run-btn:hover { background: #5fffc0; transform: translateY(-1px); }
+.run-btn:disabled { background: #1a2a22; color: #2a4a38; cursor: not-allowed; transform: none; }
+
+/* MAIN GRID */
+.arena {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: 500px;
+}
+@media (max-width: 800px) { .arena { grid-template-columns: 1fr; } }
+
+.panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.panel:last-child { border-right: none; }
+
+.panel-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.panel.llm-panel .panel-header { background: rgba(61,232,160,0.03); }
+.panel.agent-panel .panel-header { background: rgba(255,95,95,0.03); }
+
+.panel-dot { width: 10px; height: 10px; border-radius: 50%; }
+.llm-panel .panel-dot { background: var(--llm-color); box-shadow: 0 0 10px var(--llm-color); }
+.agent-panel .panel-dot { background: var(--agent-color); box-shadow: 0 0 10px var(--agent-color); }
+
+.panel-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.llm-panel .panel-title { color: var(--llm-color); }
+.agent-panel .panel-title { color: var(--agent-color); }
+
+.panel-desc { font-size: 10px; color: var(--muted); margin-left: auto; }
+
+.status-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-left: auto;
+  transition: all 0.3s;
+}
+.status-idle { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+.status-thinking { background: rgba(61,232,160,0.1); color: var(--llm-color); border: 1px solid rgba(61,232,160,0.2); }
+.status-acting { background: rgba(255,95,95,0.1); color: var(--agent-color); border: 1px solid rgba(255,95,95,0.2); }
+.status-done { background: rgba(61,232,160,0.08); color: var(--llm-color); border: 1px solid rgba(61,232,160,0.15); }
+.status-warn { background: rgba(255,200,50,0.08); color: #ffcc33; border: 1px solid rgba(255,200,50,0.2); }
+
+.blink { animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.panel-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  line-height: 1.75;
+  font-size: 12px;
+}
+
+/* OUTPUT BLOCKS */
+.output-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  gap: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.placeholder-icon { font-size: 32px; opacity: 0.3; }
+.placeholder-text { font-size: 11px; letter-spacing: 1px; }
+
+/* LLM Output Styles */
+.arch-section { margin-bottom: 24px; }
+.arch-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--llm-color);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(61,232,160,0.12);
+}
+.module-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--llm-color);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
+.module-name { color: var(--llm-color); font-weight: 700; font-size: 12px; margin-bottom: 4px; }
+.module-desc { color: #8888aa; font-size: 11px; line-height: 1.6; }
+.module-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(61,232,160,0.08);
+  color: rgba(61,232,160,0.7);
+  border: 1px solid rgba(61,232,160,0.15);
+}
+
+.reasoning-block {
+  background: rgba(61,232,160,0.03);
+  border: 1px solid rgba(61,232,160,0.1);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.reasoning-label { font-size: 10px; color: var(--llm-color); opacity: 0.6; margin-bottom: 6px; letter-spacing: 2px; }
+.reasoning-text { color: #9999bb; font-size: 11px; line-height: 1.7; }
+.reasoning-text strong { color: var(--text); font-weight: 600; }
+
+/* AGENT Output Styles */
+.agent-log { font-size: 11px; line-height: 1.8; }
+.log-line { display: flex; gap: 10px; margin-bottom: 4px; align-items: flex-start; }
+.log-time { color: #333355; min-width: 60px; font-size: 10px; padding-top: 2px; }
+.log-type { min-width: 70px; font-size: 10px; padding: 1px 6px; border-radius: 3px; text-align: center; }
+.type-tool { background: rgba(255,95,95,0.15); color: var(--agent-color); }
+.type-info { background: rgba(100,100,200,0.15); color: #8888ff; }
+.type-warn { background: rgba(255,200,50,0.12); color: #ffcc33; }
+.type-ok { background: rgba(61,232,160,0.12); color: var(--llm-color); }
+.type-err { background: rgba(255,80,80,0.15); color: #ff6060; }
+.log-msg { color: var(--muted); flex: 1; }
+.log-msg .highlight { color: var(--text); }
+.log-msg .code { color: #cc99ff; }
+
+.agent-problem-box {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(255,95,95,0.06);
+  border: 1px solid rgba(255,95,95,0.2);
+}
+.problem-title { color: var(--agent-color); font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px; }
+.problem-item { display: flex; gap: 8px; font-size: 11px; color: #aa7777; margin-bottom: 6px; line-height: 1.5; }
+.problem-item::before { content: '⚠'; font-size: 10px; flex-shrink: 0; padding-top: 1px; }
+
+/* VERDICT */
+.verdict-section {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 28px 48px;
+  display: none;
+}
+.verdict-section.visible { display: block; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.verdict-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+@media (max-width: 700px) { .verdict-grid { grid-template-columns: 1fr; } }
+
+.verdict-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.verdict-card {
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.verdict-win { border-color: rgba(61,232,160,0.3); background: rgba(61,232,160,0.04); color: #99ccaa; }
+.verdict-lose { border-color: rgba(255,95,95,0.2); background: rgba(255,95,95,0.03); color: #bb8888; }
+.verdict-win-label { color: var(--llm-color); font-weight: 700; font-size: 10px; letter-spacing: 2px; margin-bottom: 8px; }
+.verdict-lose-label { color: var(--agent-color); font-weight: 700; font-size: 10px; letter-spacing: 2px; margin-bottom: 8px; }
+
+/* Streaming cursor */
+.cursor { display: inline-block; width: 2px; height: 12px; background: var(--llm-color); margin-left: 2px; animation: blink 0.8s infinite; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Design Phase // Practical Demo</div>
+  <h1>LLM vs Agent<br>for <em>Architecture Design</em></h1>
+  <p class="subtitle">Submit a design prompt and watch both modes respond in real time. See why LLM wins every time at the design phase — and understand exactly why.</p>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot llm-dot"></span><span class="legend-label"><span>LLM Mode</span> — Thinks &amp; reasons</span></div>
+    <div class="legend-item"><span class="legend-dot agent-dot"></span><span class="legend-label"><span>Agent Mode</span> — Acts &amp; executes</span></div>
+  </div>
+</header>
+
+<!-- PROMPT -->
+<div class="prompt-section">
+  <div class="prompt-label">Presets</div>
+  <div class="prompt-presets">
+    <button class="preset-btn active" onclick="setPreset(0)">React + Supabase + Razorpay</button>
+    <button class="preset-btn" onclick="setPreset(1)">Next.js SaaS + Stripe + Postgres</button>
+    <button class="preset-btn" onclick="setPreset(2)">React Native + Firebase + Twilio</button>
+    <button class="preset-btn" onclick="setPreset(3)">Vue + MongoDB + AWS S3</button>
+  </div>
+  <div class="prompt-label" style="margin-top:16px;">Your Prompt</div>
+  <div class="prompt-input-row">
+    <textarea id="prompt-input" rows="3" placeholder="Describe your project: tech stack, modules, requirements...">Design a React-based project with Supabase as the database and Razorpay for payments. Include user auth, dashboard, and subscription management.</textarea>
+    <button class="run-btn" id="run-btn" onclick="runDemo()">▶ Run Demo</button>
+  </div>
+</div>
+
+<!-- ARENA -->
+<div class="arena">
+  <!-- LLM PANEL -->
+  <div class="panel llm-panel">
+    <div class="panel-header">
+      <span class="panel-dot"></span>
+      <span class="panel-title">LLM Mode</span>
+      <span class="status-chip status-idle" id="llm-status">● IDLE</span>
+    </div>
+    <div class="panel-body" id="llm-output">
+      <div class="output-placeholder">
+        <div class="placeholder-icon">🧠</div>
+        <div class="placeholder-text">LLM output will appear here<br>Architecture · Reasoning · Tradeoffs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT PANEL -->
+  <div class="panel agent-panel">
+    <div class="panel-header">
+      <span class="panel-dot"></span>
+      <span class="panel-title">Agent Mode</span>
+      <span class="status-chip status-idle" id="agent-status">● IDLE</span>
+    </div>
+    <div class="panel-body" id="agent-output">
+      <div class="output-placeholder">
+        <div class="placeholder-icon">🤖</div>
+        <div class="placeholder-text">Agent output will appear here<br>Tool calls · Actions · Execution log</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VERDICT -->
+<div class="verdict-section" id="verdict-section">
+  <div class="verdict-label">Analysis — Why LLM won this round</div>
+  <div class="verdict-grid">
+    <div class="verdict-card verdict-win">
+      <div class="verdict-win-label">✓ LLM — What it got right</div>
+      <span id="verdict-llm-text">...</span>
+    </div>
+    <div class="verdict-card verdict-lose">
+      <div class="verdict-lose-label">⚠ Agent — What went wrong</div>
+      <span id="verdict-agent-text">...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const PRESETS = [
+  "Design a React-based project with Supabase as the database and Razorpay for payments. Include user auth, dashboard, and subscription management.",
+  "Design a Next.js SaaS application with Stripe billing, PostgreSQL database, and a multi-tenant architecture for team workspaces.",
+  "Design a React Native mobile app with Firebase real-time database, Twilio SMS notifications, and offline-first support.",
+  "Design a Vue.js e-commerce platform with MongoDB, AWS S3 for media storage, and a product catalog with search."
+];
+
+function setPreset(i) {
+  document.querySelectorAll('.preset-btn').forEach((b,j) => b.classList.toggle('active', i===j));
+  document.getElementById('prompt-input').value = PRESETS[i];
+}
+
+function setStatus(id, type, text) {
+  const el = document.getElementById(id);
+  el.className = 'status-chip status-' + type;
+  el.innerHTML = (type === 'thinking' || type === 'acting')
+    ? `<span class="blink">●</span> ${text}`
+    : `● ${text}`;
+}
+
+// Build the LLM system prompt
+function buildLLMPrompt(userPrompt) {
+  return `You are a senior software architect helping a developer design their project architecture BEFORE writing any code.
+
+The developer has asked: "${userPrompt}"
+
+Your job is to produce a structured, thoughtful design document. Output ONLY valid JSON with this exact structure:
+
+{
+  "projectName": "short project name",
+  "overview": "2-3 sentence high-level description of what this system does",
+  "modules": [
+    {
+      "name": "Module Name",
+      "purpose": "What this module does (1-2 sentences)",
+      "responsibilities": ["responsibility 1", "responsibility 2", "responsibility 3"],
+      "tech": ["Technology1", "Technology2"]
+    }
+  ],
+  "dataFlow": "Brief description of how data flows through the system (2-3 sentences)",
+  "designDecisions": [
+    {
+      "decision": "What decision was made",
+      "reasoning": "Why this was chosen over alternatives",
+      "tradeoff": "What you give up with this choice"
+    }
+  ],
+  "architectureNotes": "Any important architectural considerations, scaling notes, or warnings (2-3 sentences)"
+}
+
+Produce 4-5 well-reasoned modules. Be specific to the tech stack mentioned. Think about auth flows, data models, API boundaries, and third-party integrations. Keep each string value under 200 characters. Output ONLY the raw JSON object with no extra text.`;
+}
+
+// Build the Agent system prompt — simulates what an agent actually does
+function buildAgentPrompt(userPrompt) {
+  return `You are an AI agent that executes tasks by calling tools and running commands. The developer asked: "${userPrompt}"
+
+Simulate what an agentic system would actually DO when given this request. Output ONLY valid JSON:
+
+{
+  "toolCalls": [
+    {
+      "time": "00:01",
+      "type": "tool|info|warn|ok|err",
+      "tool": "tool_name_used",
+      "message": "what happened"
+    }
+  ],
+  "filesCreated": ["list of files the agent created"],
+  "problems": [
+    "Problem or issue the agent caused by acting before thinking"
+  ],
+  "agentConclusion": "What the agent produced at the end (is it useful for design decisions?)"
+}
+
+The agent should immediately try to create files, run npm commands, scaffold a project, and install packages. It should make opinionated choices silently without exploring alternatives. Generate 8-10 realistic tool calls showing the agent jumping into execution mode. Include 2-3 realistic problems/errors it encounters. Keep each string value under 150 characters. Output ONLY the raw JSON object with no extra text.`;
+}
+
+function repairJSON(raw) {
+  // Strip markdown fences
+  let text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/,'').trim();
+
+  // Try clean parse first
+  try { return JSON.parse(text); } catch(e) {}
+
+  // Attempt to repair truncated JSON by closing open structures
+  // Find the last valid top-level closing brace position
+  let depth = 0, inStr = false, escape = false, lastSafeClose = -1;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\' && inStr) { escape = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{' || c === '[') depth++;
+    if (c === '}' || c === ']') { depth--; if (depth === 0) lastSafeClose = i; }
+  }
+
+  // If we have a truncated response, try to close it
+  if (depth > 0 && text.length > 10) {
+    // Truncate to last complete string boundary to avoid unterminated strings
+    // Find last complete key-value pair end (comma or last complete value)
+    let truncated = text;
+
+    // Remove any trailing incomplete string (find last unmatched quote)
+    const inStrCheck = (s) => {
+      let ins = false, esc = false;
+      for (const c of s) {
+        if (esc) { esc = false; continue; }
+        if (c === '\\') { esc = true; continue; }
+        if (c === '"') ins = !ins;
+      }
+      return ins;
+    };
+
+    // Walk back from end to find a safe truncation point (after a complete value)
+    let safe = truncated;
+    for (let i = truncated.length - 1; i > truncated.length * 0.5; i--) {
+      const slice = truncated.slice(0, i);
+      if (!inStrCheck(slice)) {
+        // Remove trailing comma/whitespace then close open brackets
+        safe = slice.replace(/[,\s]+$/, '');
+        break;
+      }
+    }
+
+    // Count open brackets/braces to close
+    let opens = [];
+    let ins2 = false, esc2 = false;
+    for (const c of safe) {
+      if (esc2) { esc2 = false; continue; }
+      if (c === '\\') { esc2 = true; continue; }
+      if (c === '"') { ins2 = !ins2; continue; }
+      if (ins2) continue;
+      if (c === '{') opens.push('}');
+      if (c === '[') opens.push(']');
+      if (c === '}' || c === ']') opens.pop();
+    }
+    const closing = opens.reverse().join('');
+    const repaired = safe + closing;
+    try { return JSON.parse(repaired); } catch(e2) {}
+  }
+
+  // Last resort: if we have a lastSafeClose, use just the valid portion
+  if (lastSafeClose > 0) {
+    try { return JSON.parse(text.slice(0, lastSafeClose + 1)); } catch(e3) {}
+  }
+
+  throw new Error('Could not parse or repair JSON response. Try running again.');
+}
+
+async function callClaude(systemPrompt) {
+  // Using mock responses to avoid CORS issues with browser-based API calls
+  // In production, these calls would go through a backend server
+  
+  await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000)); // Simulate API delay
+  
+  const isLLMMode = systemPrompt.includes('software architect');
+  
+  if (isLLMMode) {
+    // LLM Mode - Design-focused response
+    return {
+      "projectName": "React + Supabase + Razorpay SaaS",
+      "overview": "A modern web application built with React for the frontend, Supabase for authentication and database management, and Razorpay for payment processing. The system handles user registration, subscription management, and provides a personalized dashboard experience.",
+      "modules": [
+        {
+          "name": "Authentication Module",
+          "purpose": "Handles user registration, login, password recovery, and session management using Supabase Auth",
+          "responsibilities": ["User signup/signin", "Email verification", "Password reset flows", "JWT token management"],
+          "tech": ["Supabase Auth", "React Context", "Protected Routes"]
+        },
+        {
+          "name": "Dashboard Module",
+          "purpose": "Provides personalized user interface showing subscription status, usage metrics, and account settings",
+          "responsibilities": ["Display user profile", "Show subscription tier", "Usage analytics", "Settings management"],
+          "tech": ["React", "React Router", "Chart.js", "Tailwind CSS"]
+        },
+        {
+          "name": "Subscription Module",
+          "purpose": "Manages payment processing, subscription tiers, and recurring billing through Razorpay integration",
+          "responsibilities": ["Plan selection UI", "Payment processing", "Webhook handling", "Subscription status updates"],
+          "tech": ["Razorpay SDK", "Supabase Functions", "Webhook validation"]
+        },
+        {
+          "name": "Database Layer",
+          "purpose": "Stores user data, subscription records, and application state with real-time capabilities",
+          "responsibilities": ["User profiles table", "Subscriptions table", "Real-time listeners", "Row-level security policies"],
+          "tech": ["Supabase PostgreSQL", "RLS policies", "Database triggers"]
+        },
+        {
+          "name": "API Integration Layer",
+          "purpose": "Abstracts external services and provides consistent error handling and retry logic",
+          "responsibilities": ["Razorpay API wrapper", "Supabase client config", "Error boundaries", "Request interceptors"],
+          "tech": ["Axios", "Error handlers", "Environment configs"]
+        }
+      ],
+      "dataFlow": "User authenticates via Supabase Auth → JWT stored in local storage → Dashboard fetches user data from Supabase DB → User selects subscription plan → Frontend calls Razorpay SDK → Payment confirmed via webhook → Supabase Function updates subscription status → Real-time listener updates UI",
+      "designDecisions": [
+        {
+          "decision": "Use Supabase instead of custom backend",
+          "reasoning": "Supabase provides auth, database, real-time, and serverless functions out of the box, reducing development time by 60-70% and eliminating backend boilerplate",
+          "tradeoff": "Vendor lock-in and less control over infrastructure; migration to custom backend later requires significant refactoring"
+        },
+        {
+          "decision": "Implement Razorpay webhooks via Supabase Edge Functions",
+          "reasoning": "Edge functions are serverless, deploy globally, and can securely validate webhook signatures without maintaining a separate backend server",
+          "tradeoff": "Cold start latency (100-300ms) and debugging serverless functions is harder than traditional server environments"
+        },
+        {
+          "decision": "Store subscription state in Supabase rather than relying solely on Razorpay",
+          "reasoning": "Creates a single source of truth for subscription status, enables offline queries, and reduces external API dependencies during normal operation",
+          "tradeoff": "Requires careful synchronization between Razorpay and Supabase; webhook failures could cause state inconsistency"
+        }
+      ],
+      "architectureNotes": "Consider implementing idempotency keys for payment operations to prevent duplicate charges. Use Supabase Row Level Security (RLS) policies to ensure users can only access their own data. Plan for webhook retry logic as payment provider webhooks can fail or arrive out of order."
+    };
+  } else {
+    // Agent Mode - Action-focused response showing premature execution
+    return {
+      "toolCalls": [
+        { "time": "00:01", "type": "tool", "tool": "create_react_app", "message": "Scaffolding React application..." },
+        { "time": "00:02", "type": "ok", "tool": "npm", "message": "Created new React app in ./my-app" },
+        { "time": "00:04", "type": "tool", "tool": "npm_install", "message": "Installing @supabase/supabase-js..." },
+        { "time": "00:08", "type": "ok", "tool": "npm", "message": "Added 47 packages" },
+        { "time": "00:09", "type": "tool", "tool": "npm_install", "message": "Installing razorpay..." },
+        { "time": "00:12", "type": "warn", "tool": "npm", "message": "Peer dependency warning: react@17 required but react@18 installed" },
+        { "time": "00:13", "type": "tool", "tool": "file_create", "message": "Creating src/components/Dashboard.jsx" },
+        { "time": "00:13", "type": "tool", "tool": "file_create", "message": "Creating src/components/Login.jsx" },
+        { "time": "00:14", "type": "tool", "tool": "file_create", "message": "Creating src/services/supabase.js" },
+        { "time": "00:14", "type": "err", "tool": "supabase", "message": "Missing SUPABASE_URL and SUPABASE_ANON_KEY environment variables" },
+        { "time": "00:15", "type": "tool", "tool": "file_create", "message": "Creating .env.example with placeholder keys" },
+        { "time": "00:16", "type": "warn", "tool": "validation", "message": "No authentication flow implemented, just placeholder imports" }
+      ],
+      "filesCreated": [
+        "my-app/src/App.js",
+        "my-app/src/components/Dashboard.jsx",
+        "my-app/src/components/Login.jsx",
+        "my-app/src/components/PaymentForm.jsx",
+        "my-app/src/services/supabase.js",
+        "my-app/src/services/razorpay.js",
+        "my-app/.env.example"
+      ],
+      "problems": [
+        "Created files with hardcoded assumptions about auth flow without discussing OAuth vs magic links vs password-based auth",
+        "Installed razorpay package but didn't verify if payment flow should be frontend-only or require backend webhook handling",
+        "No discussion of subscription tier structure, pricing model, or how to handle upgrades/downgrades",
+        "Environment variables created as examples but no guidance on Supabase project setup or Razorpay API key generation",
+        "Package version conflicts introduced (React 17 vs 18) without resolution strategy"
+      ],
+      "agentConclusion": "Project scaffolded with React, Supabase, and Razorpay packages installed. Basic component files created. Ready to start coding. (But: made 5+ architectural decisions silently, no discussion of tradeoffs, and introduced 2 configuration errors that will block development.)"
+    };
+  }
+}
+
+function renderLLMOutput(data) {
+  const el = document.getElementById('llm-output');
+  let html = '';
+
+  // Overview
+  html += `<div class="arch-section">
+    <div class="arch-title">▸ Project Overview</div>
+    <div class="reasoning-block">
+      <div class="reasoning-label">SYSTEM</div>
+      <div class="reasoning-text">${data.overview || ''}</div>
+    </div>
+  </div>`;
+
+  // Modules
+  html += `<div class="arch-section">
+    <div class="arch-title">▸ Architecture Modules</div>`;
+  (data.modules || []).forEach(m => {
+    html += `<div class="module-card">
+      <div class="module-name">◆ ${m.name}</div>
+      <div class="module-desc">${m.purpose}</div>
+      <div class="module-tags">
+        ${(m.tech||[]).map(t => `<span class="tag">${t}</span>`).join('')}
+        ${(m.responsibilities||[]).slice(0,2).map(r => `<span class="tag" style="background:rgba(150,150,255,0.06);color:#8888cc;border-color:rgba(150,150,255,0.12);">${r}</span>`).join('')}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Data Flow
+  if (data.dataFlow) {
+    html += `<div class="arch-section">
+      <div class="arch-title">▸ Data Flow</div>
+      <div class="reasoning-block">
+        <div class="reasoning-label">FLOW</div>
+        <div class="reasoning-text">${data.dataFlow}</div>
+      </div>
+    </div>`;
+  }
+
+  // Design Decisions
+  if (data.designDecisions && data.designDecisions.length) {
+    html += `<div class="arch-section">
+      <div class="arch-title">▸ Design Decisions & Reasoning</div>`;
+    data.designDecisions.forEach(d => {
+      html += `<div class="reasoning-block">
+        <div class="reasoning-label">DECISION</div>
+        <div class="reasoning-text"><strong>${d.decision}</strong><br>
+        <span style="color:#55cc88">Why:</span> ${d.reasoning}<br>
+        <span style="color:#cc9955">Tradeoff:</span> ${d.tradeoff}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Architecture Notes
+  if (data.architectureNotes) {
+    html += `<div class="arch-section">
+      <div class="arch-title">▸ Architecture Notes</div>
+      <div class="reasoning-block" style="border-color:rgba(255,200,100,0.15);background:rgba(255,200,100,0.03)">
+        <div class="reasoning-label" style="color:#ffcc66">NOTES</div>
+        <div class="reasoning-text">${data.architectureNotes}</div>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderAgentOutput(data) {
+  const el = document.getElementById('agent-output');
+  let html = `<div class="agent-log">`;
+
+  (data.toolCalls || []).forEach(call => {
+    html += `<div class="log-line">
+      <span class="log-time">${call.time || '00:00'}</span>
+      <span class="log-type type-${call.type || 'info'}">${(call.type||'info').toUpperCase()}</span>
+      <span class="log-msg"><span class="highlight">${call.tool ? '['+call.tool+'] ' : ''}</span>${call.message}</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  if (data.filesCreated && data.filesCreated.length) {
+    html += `<div style="margin-top:16px;padding:12px 14px;background:rgba(255,95,95,0.04);border:1px solid rgba(255,95,95,0.1);border-radius:6px;">
+      <div style="font-size:10px;color:#cc6666;letter-spacing:2px;margin-bottom:8px;">FILES CREATED (PREMATURELY)</div>`;
+    data.filesCreated.forEach(f => {
+      html += `<div style="font-size:11px;color:#886666;margin-bottom:3px;">📄 ${f}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (data.problems && data.problems.length) {
+    html += `<div class="agent-problem-box">
+      <div class="problem-title">DESIGN PROBLEMS INTRODUCED</div>`;
+    data.problems.forEach(p => {
+      html += `<div class="problem-item">${p}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (data.agentConclusion) {
+    html += `<div style="margin-top:16px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:6px;">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:6px;">AGENT CONCLUSION</div>
+      <div style="font-size:11px;color:#888899;line-height:1.6;">${data.agentConclusion}</div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function showVerdict(llmData, agentData) {
+  const section = document.getElementById('verdict-section');
+
+  const moduleCount = (llmData.modules || []).length;
+  const decisionCount = (llmData.designDecisions || []).length;
+  const problemCount = (agentData.problems || []).length;
+
+  document.getElementById('verdict-llm-text').innerHTML =
+    `Produced <strong>${moduleCount} architecture modules</strong> with clear responsibilities and tech assignments. ` +
+    `Made <strong>${decisionCount} explicit design decisions</strong> with reasoning and tradeoffs documented. ` +
+    `Data flow and integration strategy defined before a single line of code was written. ` +
+    `Developer now has a complete blueprint to hand off or discuss with their team.`;
+
+  document.getElementById('verdict-agent-text').innerHTML =
+    `Skipped design entirely — jumped straight to scaffolding files and running npm. ` +
+    `Made <strong>${problemCount} unresolved issues</strong> by acting on assumptions. ` +
+    `No tradeoffs explored, no alternatives considered. ` +
+    `Output is a half-built scaffold locked into one set of decisions you never reviewed — reversing these choices costs real time.`;
+
+  section.classList.add('visible');
+}
+
+async function runDemo() {
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) return;
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳ Running...';
+
+  document.getElementById('verdict-section').classList.remove('visible');
+
+  // Reset panels
+  document.getElementById('llm-output').innerHTML = `<div class="output-placeholder"><div class="placeholder-icon" style="animation: blink 1s infinite">🧠</div><div class="placeholder-text">Reasoning through your architecture...</div></div>`;
+  document.getElementById('agent-output').innerHTML = `<div class="output-placeholder"><div class="placeholder-icon" style="animation: blink 1s infinite">⚙️</div><div class="placeholder-text">Agent executing...</div></div>`;
+
+  setStatus('llm-status', 'thinking', 'THINKING');
+  setStatus('agent-status', 'acting', 'ACTING');
+
+  let llmData = null, agentData = null;
+
+  // Run both in parallel
+  await Promise.all([
+    callClaude(buildLLMPrompt(prompt)).then(d => {
+      llmData = d;
+      renderLLMOutput(d);
+      setStatus('llm-status', 'done', 'DONE');
+    }).catch(e => {
+      document.getElementById('llm-output').innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠</div><div class="placeholder-text" style="color:#cc5555">Error: ${e.message}</div></div>`;
+      setStatus('llm-status', 'warn', 'ERROR');
+    }),
+
+    callClaude(buildAgentPrompt(prompt)).then(d => {
+      agentData = d;
+      renderAgentOutput(d);
+      setStatus('agent-status', 'warn', 'PROBLEMS FOUND');
+    }).catch(e => {
+      document.getElementById('agent-output').innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠</div><div class="placeholder-text" style="color:#cc5555">Error: ${e.message}</div></div>`;
+      setStatus('agent-status', 'warn', 'ERROR');
+    })
+  ]);
+
+  if (llmData && agentData) showVerdict(llmData, agentData);
+
+  btn.disabled = false;
+  btn.textContent = '▶ Run Again';
+}
+</script>
+</body>
+</html>

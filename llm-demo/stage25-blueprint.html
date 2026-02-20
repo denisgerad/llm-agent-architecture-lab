@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 2.5 — Implementation Blueprint</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --bg: #070710;
+  --surface: #0c0c18;
+  --card: #10101e;
+  --card2: #141428;
+  --border: #1a1a30;
+  --border2: #222240;
+  --c1: #e879f9;    /* blueprint magenta */
+  --c2: #34d399;    /* done green */
+  --c3: #fb923c;    /* agent orange */
+  --c4: #60a5fa;    /* file blue */
+  --c5: #fbbf24;    /* warning amber */
+  --c1-dim: rgba(232,121,249,0.07);
+  --c4-dim: rgba(96,165,250,0.07);
+  --text: #e0e2f5;
+  --muted: #52527a;
+  --muted2: #8080aa;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Instrument Serif', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 12px; min-height: 100vh; }
+
+/* ── PIPELINE ── */
+.pipeline {
+  display: flex; align-items: center;
+  padding: 0 40px; background: var(--surface);
+  border-bottom: 1px solid var(--border); overflow-x: auto; gap: 0;
+}
+.ps { display: flex; align-items: center; gap: 10px; padding: 14px 20px 14px 0; flex-shrink: 0; }
+.ps-arrow { color: #222240; font-size: 18px; margin: 0 4px; }
+.ps-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+}
+.done .ps-num  { background: rgba(52,211,153,0.12); color: var(--c2); border: 1px solid rgba(52,211,153,0.2); }
+.now  .ps-num  { background: rgba(232,121,249,0.15); color: var(--c1); border: 1px solid rgba(232,121,249,0.3); box-shadow: 0 0 14px rgba(232,121,249,0.15); }
+.next .ps-num  { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+.ps-info { display: flex; flex-direction: column; gap: 1px; }
+.ps-tag { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
+.done .ps-tag { color: var(--c2); } .now .ps-tag { color: var(--c1); } .next .ps-tag { color: var(--muted); }
+.ps-name { font-size: 11px; font-weight: 600; }
+.done .ps-name { color: #6688aa; } .now .ps-name { color: var(--text); } .next .ps-name { color: var(--muted); }
+
+/* ── HEADER ── */
+header {
+  padding: 36px 40px 28px; border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+header::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c1), transparent); opacity: 0.35;
+}
+header::after {
+  content: ''; position: absolute; top: -100px; right: -100px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(232,121,249,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.eyebrow { font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: var(--c1); opacity: 0.7; margin-bottom: 12px; }
+h1 { font-family: var(--serif); font-size: clamp(24px, 3vw, 40px); font-weight: 400; color: #f0f0ff; line-height: 1.15; }
+h1 em { color: var(--c1); font-style: italic; }
+.subtitle { margin-top: 10px; font-size: 11px; color: var(--muted2); line-height: 1.75; max-width: 620px; }
+
+.gap-callout {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-top: 16px; padding: 10px 16px;
+  background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 8px; font-size: 11px; color: #d4a800; line-height: 1.5;
+}
+.gap-callout strong { color: var(--c5); }
+
+/* ── INPUT SECTION ── */
+.input-section {
+  background: var(--surface); border-bottom: 1px solid var(--border); padding: 24px 40px;
+}
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 800px) { .input-grid { grid-template-columns: 1fr; } }
+
+.input-block { display: flex; flex-direction: column; gap: 8px; }
+.input-label {
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.input-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.input-label .badge {
+  font-size: 9px; padding: 2px 8px; border-radius: 10px;
+  background: rgba(52,211,153,0.1); color: var(--c2); border: 1px solid rgba(52,211,153,0.15);
+}
+.input-label .badge-now {
+  font-size: 9px; padding: 2px 8px; border-radius: 10px;
+  background: var(--c1-dim); color: var(--c1); border: 1px solid rgba(232,121,249,0.15);
+}
+textarea {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 6px;
+  color: var(--text); font-family: var(--mono); font-size: 11px; padding: 12px 14px;
+  resize: vertical; min-height: 90px; line-height: 1.65; outline: none;
+  transition: border-color 0.2s;
+}
+textarea:focus { border-color: var(--c1); }
+textarea::placeholder { color: #252545; }
+
+.options-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.opt-chip {
+  padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border2);
+  background: var(--card); color: var(--muted2); font-size: 10px; cursor: pointer;
+  transition: all 0.2s; letter-spacing: 0.5px;
+}
+.opt-chip.active { border-color: var(--c1); color: var(--c1); background: var(--c1-dim); }
+.opt-chip:hover:not(.active) { border-color: var(--border2); color: var(--text); }
+
+.gen-row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+.gen-btn {
+  padding: 11px 28px; background: var(--c1); color: #fff; border: none;
+  border-radius: 8px; font-family: var(--mono); font-size: 12px; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+}
+.gen-btn:hover { background: #f0a0ff; color: #1a001a; transform: translateY(-1px); }
+.gen-btn:disabled { background: #1a1030; color: #332255; cursor: not-allowed; transform: none; }
+.gen-hint { font-size: 10px; color: var(--muted); line-height: 1.5; }
+
+/* ── MAIN LAYOUT ── */
+.main-layout { display: grid; grid-template-columns: 380px 1fr; min-height: 600px; }
+@media (max-width: 1000px) { .main-layout { grid-template-columns: 1fr; } }
+
+/* ── FILE TREE PANEL ── */
+.tree-panel {
+  border-right: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-direction: column;
+}
+.panel-hdr {
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(232,121,249,0.03);
+}
+.panel-hdr-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c1); box-shadow: 0 0 8px var(--c1); }
+.panel-hdr-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--c1); }
+.panel-hdr-count { margin-left: auto; font-size: 10px; color: var(--muted); }
+
+.tree-body { flex: 1; padding: 16px; overflow-y: auto; }
+
+/* tree nodes */
+.tree-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 300px; gap: 12px; text-align: center; color: var(--muted);
+}
+.tree-placeholder-icon { font-size: 32px; opacity: 0.2; }
+.tree-placeholder-text { font-size: 10px; letter-spacing: 1px; line-height: 1.7; }
+
+.tree-folder { margin-bottom: 2px; }
+.tree-folder-row {
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+  border-radius: 4px; cursor: pointer; transition: background 0.15s;
+  user-select: none;
+}
+.tree-folder-row:hover { background: rgba(255,255,255,0.03); }
+.tree-folder-icon { font-size: 12px; transition: transform 0.2s; flex-shrink: 0; }
+.tree-folder-icon.open { transform: rotate(90deg); }
+.tree-folder-name { font-size: 11px; color: var(--c4); font-weight: 600; }
+.tree-folder-badge {
+  margin-left: auto; font-size: 9px; padding: 1px 6px; border-radius: 8px;
+  background: rgba(96,165,250,0.1); color: rgba(96,165,250,0.6);
+  border: 1px solid rgba(96,165,250,0.1);
+}
+.tree-children { padding-left: 18px; border-left: 1px solid var(--border); margin-left: 14px; }
+.tree-file {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  border-radius: 4px; cursor: pointer; transition: all 0.15s; margin-bottom: 1px;
+}
+.tree-file:hover { background: rgba(232,121,249,0.05); }
+.tree-file.selected { background: var(--c1-dim); border: 1px solid rgba(232,121,249,0.15); }
+.tree-file-icon { font-size: 10px; flex-shrink: 0; }
+.tree-file-name { font-size: 11px; color: var(--muted2); flex: 1; }
+.tree-file.selected .tree-file-name { color: var(--text); }
+.tree-file-module {
+  font-size: 9px; padding: 1px 5px; border-radius: 6px; white-space: nowrap;
+  background: rgba(232,121,249,0.08); color: rgba(232,121,249,0.5);
+  border: 1px solid rgba(232,121,249,0.1);
+}
+
+/* ── DETAIL / OUTPUT PANEL ── */
+.detail-panel { display: flex; flex-direction: column; }
+
+.out-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface); padding: 0 20px; overflow-x: auto;
+}
+.out-tab {
+  padding: 13px 18px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 7px;
+}
+.out-tab:hover { color: var(--text); }
+.out-tab.active { color: var(--c1); border-bottom-color: var(--c1); }
+.ftag {
+  font-size: 9px; padding: 1px 6px; border-radius: 3px;
+  background: var(--c1-dim); color: var(--c1); border: 1px solid rgba(232,121,249,0.12);
+}
+.out-tab.pkg-tab.active { color: var(--c3); border-bottom-color: var(--c3); }
+.out-tab.pkg-tab .ftag { background: rgba(251,146,60,0.08); color: var(--c3); border-color: rgba(251,146,60,0.12); }
+
+.out-panel { display: none; padding: 24px; overflow-y: auto; flex: 1; }
+.out-panel.active { display: block; animation: fi 0.2s ease; }
+@keyframes fi { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* File detail card */
+.file-detail-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 360px; gap: 12px; text-align: center; color: var(--muted);
+}
+.fd-icon { font-size: 32px; opacity: 0.2; }
+.fd-text { font-size: 10px; letter-spacing: 1px; line-height: 1.7; }
+
+.file-card {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 10px;
+  overflow: hidden; margin-bottom: 16px;
+}
+.file-card-hdr {
+  padding: 14px 18px; background: var(--card2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.file-card-path { font-size: 12px; color: var(--c1); font-weight: 600; }
+.file-card-module {
+  padding: 3px 10px; border-radius: 10px; font-size: 10px;
+  background: var(--c1-dim); color: var(--c1); border: 1px solid rgba(232,121,249,0.15);
+}
+.file-card-type {
+  padding: 3px 10px; border-radius: 10px; font-size: 10px;
+  background: rgba(96,165,250,0.08); color: var(--c4); border: 1px solid rgba(96,165,250,0.12);
+  margin-left: auto;
+}
+.file-card-body { padding: 16px 18px; }
+.fc-row { display: flex; gap: 12px; margin-bottom: 12px; }
+.fc-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); min-width: 90px; padding-top: 2px; }
+.fc-val { font-size: 11px; color: var(--muted2); line-height: 1.65; flex: 1; }
+.fc-val strong { color: var(--text); }
+.fc-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.fc-chip {
+  font-size: 10px; padding: 2px 8px; border-radius: 8px;
+  background: rgba(96,165,250,0.08); color: var(--c4); border: 1px solid rgba(96,165,250,0.12);
+}
+.fc-chip.exp { background: rgba(251,191,36,0.08); color: var(--c5); border-color: rgba(251,191,36,0.12); }
+.fc-chip.dep { background: rgba(52,211,153,0.08); color: var(--c2); border-color: rgba(52,211,153,0.12); }
+
+/* mapping view */
+.mapping-card {
+  background: var(--card); border: 1px solid var(--border2); border-left: 3px solid var(--c1);
+  border-radius: 6px; padding: 14px 16px; margin-bottom: 12px;
+}
+.mc-module { font-size: 12px; font-weight: 700; color: var(--c1); margin-bottom: 10px; }
+.mc-files { display: flex; flex-direction: column; gap: 4px; }
+.mc-file { font-size: 11px; color: var(--c4); display: flex; align-items: center; gap: 6px; }
+.mc-file::before { content: '→'; color: var(--muted); font-size: 10px; }
+.mc-purpose { font-size: 10px; color: var(--muted); margin-left: 14px; }
+
+/* agent package */
+.pkg-header {
+  padding: 16px 18px; background: rgba(251,146,60,0.05);
+  border: 1px solid rgba(251,146,60,0.15); border-radius: 8px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.pkg-badge {
+  padding: 5px 12px; background: rgba(251,146,60,0.15); color: var(--c3);
+  border: 1px solid rgba(251,146,60,0.25); border-radius: 16px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; white-space: nowrap;
+}
+.pkg-desc { font-size: 11px; color: var(--muted2); line-height: 1.6; }
+.pkg-desc strong { color: var(--text); }
+
+.code-block {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 8px; overflow: hidden; margin-bottom: 16px;
+}
+.code-block-hdr {
+  padding: 9px 14px; background: var(--card2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.code-block-name { font-size: 11px; color: var(--c3); font-weight: 600; }
+.code-block-desc { font-size: 10px; color: var(--muted); margin-left: auto; }
+.copy-btn {
+  padding: 3px 10px; background: transparent; border: 1px solid var(--border2);
+  color: var(--muted); font-family: var(--mono); font-size: 10px; border-radius: 4px;
+  cursor: pointer; transition: all 0.2s;
+}
+.copy-btn:hover { border-color: var(--c3); color: var(--c3); }
+.code-body {
+  padding: 14px 16px; font-size: 11px; line-height: 1.8;
+  white-space: pre; overflow-x: auto; color: #9090bb; max-height: 400px; overflow-y: auto;
+}
+.t-key { color: #a78bfa; } .t-str { color: #86efac; } .t-num { color: #fb923c; }
+.t-bool { color: #67e8f9; } .t-comment { color: #2a2a50; font-style: italic; }
+
+/* progress / status */
+.status-bar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--c1-dim); border: 1px solid rgba(232,121,249,0.12);
+  border-radius: 6px; margin-bottom: 16px;
+}
+.status-bar .st { font-size: 11px; color: var(--c1); }
+.loader { display: inline-block; width: 10px; height: 10px; border: 2px solid rgba(232,121,249,0.2); border-top-color: var(--c1); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.blink { animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── HANDOVER BANNER ── */
+.handover {
+  border-top: 1px solid var(--border); padding: 20px 40px;
+  background: linear-gradient(90deg, rgba(251,146,60,0.04) 0%, transparent 60%);
+  display: none; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.handover.visible { display: flex; animation: fi 0.4s ease; }
+.ho-badge {
+  padding: 6px 14px; background: rgba(251,146,60,0.12); color: var(--c3);
+  border: 1px solid rgba(251,146,60,0.2); border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: 2px; white-space: nowrap;
+}
+.ho-checks { display: flex; gap: 14px; flex-wrap: wrap; flex: 1; }
+.hc { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+.hc.done { color: var(--c2); }
+.hc-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.hc.done .hc-dot { background: var(--c2); box-shadow: 0 0 6px var(--c2); }
+.ho-btn {
+  padding: 10px 22px; background: var(--c3); color: #fff; border: none;
+  border-radius: 8px; font-family: var(--mono); font-size: 11px; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.2s; white-space: nowrap;
+}
+.ho-btn:hover { background: #fdba74; color: #1a0800; }
+
+/* ── MODEL SELECTOR ──────────────────────────────────────────────────────── */
+.model-selector { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.model-btn {
+  padding:6px 14px; border-radius:6px; font-family:var(--mono); font-size:10px;
+  font-weight:700; letter-spacing:0.5px; cursor:pointer; border:1px solid var(--border);
+  background:var(--bg2); color:var(--muted2); transition:all 0.18s;
+}
+.model-btn:hover { border-color:var(--c3); color:var(--c3); }
+.model-btn.active { background:rgba(139,92,246,0.12); border-color:var(--c3); color:var(--c3); }
+.model-btn.active.ollama { background:rgba(52,211,153,0.1); border-color:var(--c2); color:var(--c2); }
+.model-badge {
+  display:inline-flex; align-items:center; gap:5px; padding:3px 9px;
+  border-radius:4px; font-size:9px; font-weight:700; letter-spacing:0.5px;
+  margin-left:8px; vertical-align:middle;
+}
+.model-badge.mock { background:rgba(139,92,246,0.12); color:var(--c3); border:1px solid rgba(139,92,246,0.2); }
+.model-badge.ollama { background:rgba(52,211,153,0.12); color:var(--c2); border:1px solid rgba(52,211,153,0.2); }
+.model-badge.ollama-partial { background:rgba(251,191,36,0.1); color:var(--c5); border:1px solid rgba(251,191,36,0.2); }
+/* ── MODEL STATUS BAR ────────────────────────────────────────────────────── */
+#model-status-bar {
+  display:none; margin: 0 0 18px 0;
+  padding:10px 16px; border-radius:10px;
+  font-family:var(--mono); font-size:12px; font-weight:600;
+  align-items:center; gap:10px;
+}
+#model-status-bar.mock { display:flex; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.25); color:var(--c3); }
+#model-status-bar.ollama { display:flex; background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--c2); }
+#model-status-bar.ollama-partial { display:flex; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); color:var(--c5); }
+#model-status-bar .msb-icon { font-size:18px; }
+#model-status-bar .msb-sub { font-size:10px; font-weight:400; opacity:0.75; margin-left:6px; }
+</style>
+</head>
+<body>
+
+<!-- PIPELINE -->
+<div class="pipeline">
+  <div class="ps done"><div class="ps-num">✓</div><div class="ps-info"><div class="ps-tag">Stage 1</div><div class="ps-name">Design (LLM)</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps done"><div class="ps-num">✓</div><div class="ps-info"><div class="ps-tag">Stage 2</div><div class="ps-name">Rules (LLM)</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps now"><div class="ps-num">2.5</div><div class="ps-info"><div class="ps-tag">Stage 2.5 — Now</div><div class="ps-name">Blueprint (LLM)</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps next"><div class="ps-num">3</div><div class="ps-info"><div class="ps-tag">Stage 3 — Next</div><div class="ps-name">Scaffold (Agent)</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps next"><div class="ps-num">4</div><div class="ps-info"><div class="ps-tag">Stage 4</div><div class="ps-name">Testing (Agent)</div></div></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="eyebrow">Stage 2.5 // Implementation Blueprint</div>
+  <h1>The Bridge:<br><em>Architecture → Code</em></h1>
+  <p class="subtitle">LLM translates your design modules into an exact folder structure, file manifest, and component hierarchy — so the Stage 3 agent scaffolds with zero ambiguity and zero assumptions.</p>
+  <div class="gap-callout">
+    <span>⚠</span>
+    <span><strong>The gap your agent identified:</strong> Architecture intent without structural spec forces agents to guess — and they always guess wrong somewhere. This stage closes that gap before handover.</span>
+  </div>
+</header>
+
+<!-- INPUT -->
+<div class="input-section">
+  <div class="input-grid">
+    <div class="input-block">
+      <div class="input-label"><span>Stage 1 Design</span><span class="badge">✓ From S1</span></div>
+      <textarea id="design-input" rows="4" placeholder='Paste Stage 1 JSON or use the preset below...'></textarea>
+    </div>
+    <div class="input-block">
+      <div class="input-label"><span>Stage 2 Config</span><span class="badge">✓ From S2</span></div>
+      <textarea id="config-input" rows="4" placeholder='Paste Stage 2 config summary (optional — used to align folder structure with lint rules)...'></textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Blueprint Options</div>
+    <div class="options-row">
+      <div class="opt-chip active" id="opt-ts" onclick="toggleOpt('ts')">TypeScript</div>
+      <div class="opt-chip active" id="opt-vite" onclick="toggleOpt('vite')">Vite</div>
+      <div class="opt-chip active" id="opt-router" onclick="toggleOpt('router')">React Router</div>
+      <div class="opt-chip active" id="opt-contexts" onclick="toggleOpt('contexts')">Context / Hooks</div>
+      <div class="opt-chip active" id="opt-types" onclick="toggleOpt('types')">Types folder</div>
+      <div class="opt-chip active" id="opt-tests" onclick="toggleOpt('tests')">Test stubs</div>
+      <div class="opt-chip" id="opt-storybook" onclick="toggleOpt('storybook')">Storybook</div>
+      <div class="opt-chip" id="opt-i18n" onclick="toggleOpt('i18n')">i18n</div>
+    </div>
+  </div>
+
+  <div class="gen-row">
+    <button class="gen-btn" id="gen-btn" onclick="generate()">⟳ Generate Blueprint</button>
+    <div class="gen-hint">LLM produces folder tree · file manifest · module mapping · agent package<br>Uses preset React + Supabase + Razorpay stack if no design JSON pasted</div>
+  </div>
+  <div style="margin-top:10px;">
+    <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">AI Engine</div>
+    <div class="model-selector">
+      <button class="model-btn active" id="btn-mock" onclick="setModel('mock')">📋 Mock Data</button>
+      <button class="model-btn ollama" id="btn-ollama" onclick="setModel('ollama')">🤖 Ollama + Mistral</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODEL STATUS -->
+<div id="model-status-bar">
+  <span class="msb-icon" id="msb-icon"></span>
+  <span id="msb-label"></span>
+  <span class="msb-sub" id="msb-sub"></span>
+</div>
+
+<!-- MAIN -->
+<div class="main-layout">
+
+  <!-- FILE TREE -->
+  <div class="tree-panel">
+    <div class="panel-hdr">
+      <span class="panel-hdr-dot"></span>
+      <span class="panel-hdr-title">File Tree</span>
+      <span class="panel-hdr-count" id="file-count">—</span>
+    </div>
+    <div class="tree-body" id="tree-body">
+      <div class="tree-placeholder">
+        <div class="tree-placeholder-icon">🗂</div>
+        <div class="tree-placeholder-text">Folder structure will<br>appear here after generation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel">
+    <div class="out-tabs">
+      <div class="out-tab active" onclick="switchTab('detail')">File Detail <span class="ftag">click file</span></div>
+      <div class="out-tab" onclick="switchTab('mapping')">Module → Files <span class="ftag">map</span></div>
+      <div class="out-tab pkg-tab" onclick="switchTab('package')">Agent Package <span class="ftag">→ S3</span></div>
+    </div>
+
+    <div class="out-panel active" id="panel-detail">
+      <div class="file-detail-placeholder" id="fd-placeholder">
+        <div class="fd-icon">←</div>
+        <div class="fd-text">Click any file in the tree<br>to see its spec, purpose,<br>imports, and module mapping</div>
+      </div>
+      <div id="fd-content" style="display:none;"></div>
+    </div>
+
+    <div class="out-panel" id="panel-mapping">
+      <div class="file-detail-placeholder" id="map-placeholder">
+        <div class="fd-icon">🔗</div>
+        <div class="fd-text">Module → file mapping<br>will appear after generation</div>
+      </div>
+      <div id="map-content" style="display:none;"></div>
+    </div>
+
+    <div class="out-panel" id="panel-package">
+      <div class="file-detail-placeholder" id="pkg-placeholder">
+        <div class="fd-icon">📦</div>
+        <div class="fd-text">The complete Agent Execution Package<br>combining all stages into one<br>handover JSON for Stage 3</div>
+      </div>
+      <div id="pkg-content" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HANDOVER -->
+<div class="handover" id="handover">
+  <span class="ho-badge">→ STAGE 3 READY</span>
+  <div class="ho-checks">
+    <div class="hc done"><span class="hc-dot"></span>Design spec</div>
+    <div class="hc done"><span class="hc-dot"></span>Lint rules</div>
+    <div class="hc" id="hc-tree"><span class="hc-dot"></span>Folder structure</div>
+    <div class="hc" id="hc-manifest"><span class="hc-dot"></span>File manifest</div>
+    <div class="hc" id="hc-mapping"><span class="hc-dot"></span>Module mapping</div>
+    <div class="hc" id="hc-package"><span class="hc-dot"></span>Agent package</div>
+  </div>
+  <button class="ho-btn" onclick="copyAgentPackage()">⎘ Copy Agent Package</button>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+const opts = { ts:true, vite:true, router:true, contexts:true, types:true, tests:true, storybook:false, i18n:false };
+let blueprintData = null;
+let selectedFile = null;
+let agentPackageStr = '';
+let useOllama = false;
+
+const DEFAULT_DESIGN = {
+  projectName: "React Supabase Razorpay App",
+  overview: "A React SPA with Supabase for auth/database and Razorpay for subscription payments.",
+  modules: [
+    { name: "Auth Module", purpose: "User registration, login, session management, JWT handling", tech: ["React", "Supabase Auth", "JWT"] },
+    { name: "Dashboard", purpose: "Main UI post-login: user profile, usage stats, navigation", tech: ["React", "React Router", "Context API"] },
+    { name: "Payment Module", purpose: "Subscription plans, Razorpay checkout, webhook handling, subscription status", tech: ["Razorpay", "Supabase Edge Functions"] },
+    { name: "Data Layer", purpose: "Supabase client, RLS-aware queries, real-time subscriptions", tech: ["Supabase", "PostgreSQL"] },
+    { name: "API Client", purpose: "Typed wrappers for Supabase and Razorpay SDKs, error normalisation", tech: ["TypeScript", "Zod"] }
+  ],
+  designDecisions: [
+    { decision: "Supabase RLS over custom middleware", reasoning: "Co-locates security with data, reduces backend surface", tradeoff: "Team must learn Postgres RLS" },
+    { decision: "TypeScript throughout", reasoning: "Razorpay and Supabase have strong TS types; safer for payments", tradeoff: "Slower initial setup" }
+  ]
+};
+
+// ── TOGGLES ────────────────────────────────────────────────────────────────
+function toggleOpt(key) {
+  opts[key] = !opts[key];
+  document.getElementById('opt-' + key).classList.toggle('active', opts[key]);
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// ── SANITIZE STRING ────────────────────────────────────────────────────────
+function sanitizeString(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/<[^>]*>/g, '')           // strip HTML tags
+    .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&').replace(/&#39;/g, "'")
+    .replace(/"[a-z-]+">/g, '')         // artifact patterns like "t-bool">
+    .replace(/">[ \t]*/g, '')            // partial "> artifact
+    .trim();
+}
+
+// ── JSON REPAIR ────────────────────────────────────────────────────────────
+function repairJSON(raw) {
+  let text = raw
+    .replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/,'').trim();
+
+  // Strip HTML tags from entire response
+  text = text.replace(/<[^>]*>/g, '');
+
+  // First pass: try direct parse
+  try { return JSON.parse(text); } catch(e) {}
+
+  // Convert backtick strings to double-quoted strings
+  while (text.includes('`')) {
+    const start = text.indexOf('`');
+    const end = text.indexOf('`', start + 1);
+    if (end === -1) break;
+    const inner = text.slice(start + 1, end)
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '');
+    text = text.slice(0, start) + '"' + inner + '"' + text.slice(end + 1);
+  }
+
+  // Remove JS string concatenation (" + ")
+  text = text.replace(/"\s*\+\s*"/g, '');
+
+  // Extract JSON boundaries
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    const extracted = text.slice(start, end + 1);
+    try { return JSON.parse(extracted); } catch(e) {}
+    text = extracted;
+  }
+
+  // Bracket-closing repair
+  const inStrCheck = s => { let ins=false,esc=false; for(const c of s){if(esc){esc=false;continue;}if(c==='\\'){esc=true;continue;}if(c==='"')ins=!ins;} return ins; };
+  let safe = text;
+  for(let i=text.length-1;i>text.length*0.5;i--){const sl=text.slice(0,i);if(!inStrCheck(sl)){safe=sl.replace(/[,\s]+$/,'');break;}}
+  let opens=[];let ins2=false,esc2=false;
+  for(const c of safe){if(esc2){esc2=false;continue;}if(c==='\\'){esc2=true;continue;}if(c==='"'){ins2=!ins2;continue;}if(ins2)continue;if(c==='{')opens.push('}');if(c==='[')opens.push(']');if(c==='}'||c===']')opens.pop();}
+  const repaired = safe + opens.reverse().join('');
+  console.log('[repairJSON] final attempt:', repaired.slice(0, 200));
+  try{return JSON.parse(repaired);}catch(e2){}
+  throw new Error('JSON repair failed.');
+}
+
+// ── OLLAMA ──────────────────────────────────────────────────────────────────
+async function callOllama(systemPrompt) {
+  const t0 = Date.now();
+  const resp = await fetch('http://localhost:11434/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'mistral:7b-instruct-q4_K_M',
+      messages: [{ role: 'user', content: systemPrompt }],
+      stream: false,
+      options: { temperature: 0.3, num_predict: 4000 }
+    })
+  });
+  if (!resp.ok) throw new Error(`Ollama HTTP ${resp.status}`);
+  const data = await resp.json();
+  const content = data.message?.content || '';
+  console.log(`[Ollama] ${Date.now()-t0}ms | first 500 chars:`, content.slice(0, 500));
+  return content;
+}
+
+// ── MODEL SELECTOR ───────────────────────────────────────────────────────────
+function setModel(model) {
+  useOllama = (model === 'ollama');
+  document.getElementById('btn-mock').classList.toggle('active', !useOllama);
+  document.getElementById('btn-ollama').classList.toggle('active', useOllama);
+  document.getElementById('btn-ollama').classList.toggle('ollama', useOllama);
+}
+
+// ── MOCK BLUEPRINT GENERATOR ───────────────────────────────────────────────
+function generateMockBlueprint(design, opts) {
+  const ext = opts.ts ? 'tsx' : 'jsx';
+  const typeExt = opts.ts ? '.ts' : '.js';
+  const modules = design.modules || [];
+  
+  // Build folder structure tree
+  const authFiles = [
+    { path: `src/components/Auth/LoginForm.${ext}`, type: "file", purpose: "Login form with email/password", module: "Auth Module", exports: ["LoginForm"], imports: ["useAuth", "supabaseClient"], fileType: "component" },
+    { path: `src/components/Auth/RegisterForm.${ext}`, type: "file", purpose: "User registration form", module: "Auth Module", exports: ["RegisterForm"], imports: ["useAuth", "supabaseClient"], fileType: "component" },
+    { path: `src/components/Auth/PasswordReset.${ext}`, type: "file", purpose: "Password reset flow", module: "Auth Module", exports: ["PasswordReset"], imports: ["useAuth"], fileType: "component" },
+    { path: `src/components/Auth/AuthGuard.${ext}`, type: "file", purpose: "Protected route wrapper", module: "Auth Module", exports: ["AuthGuard"], imports: ["useAuth", "react-router"], fileType: "component" },
+    { path: `src/components/Auth/index${typeExt}`, type: "file", purpose: "Barrel export for Auth components", module: "Auth Module", exports: ["*"], imports: [], fileType: "util" }
+  ];
+  
+  const dashboardFiles = [
+    { path: `src/components/Dashboard/DashboardLayout.${ext}`, type: "file", purpose: "Main dashboard layout container", module: "Dashboard", exports: ["DashboardLayout"], imports: ["useAuth", "react-router"], fileType: "component" },
+    { path: `src/components/Dashboard/UserProfile.${ext}`, type: "file", purpose: "User profile display and edit", module: "Dashboard", exports: ["UserProfile"], imports: ["useAuth"], fileType: "component" },
+    { path: `src/components/Dashboard/UsageStats.${ext}`, type: "file", purpose: "Usage metrics display", module: "Dashboard", exports: ["UsageStats"], imports: ["useSubscription"], fileType: "component" },
+    { path: `src/components/Dashboard/Settings.${ext}`, type: "file", purpose: "User settings panel", module: "Dashboard", exports: ["Settings"], imports: ["useAuth"], fileType: "component" },
+    { path: `src/components/Dashboard/index${typeExt}`, type: "file", purpose: "Barrel export", module: "Dashboard", exports: ["*"], imports: [], fileType: "util" }
+  ];
+  
+  const paymentFiles = [
+    { path: `src/components/Payment/PlanSelector.${ext}`, type: "file", purpose: "Subscription plan selection UI", module: "Payment Module", exports: ["PlanSelector"], imports: ["usePayment"], fileType: "component" },
+    { path: `src/components/Payment/PaymentForm.${ext}`, type: "file", purpose: "Razorpay checkout integration", module: "Payment Module", exports: ["PaymentForm"], imports: ["razorpayClient", "usePayment"], fileType: "component" },
+    { path: `src/components/Payment/SubscriptionStatus.${ext}`, type: "file", purpose: "Current subscription display", module: "Payment Module", exports: ["SubscriptionStatus"], imports: ["useSubscription"], fileType: "component" },
+    { path: `src/components/Payment/index${typeExt}`, type: "file", purpose: "Barrel export", module: "Payment Module", exports: ["*"], imports: [], fileType: "util" }
+  ];
+  
+  const hookFiles = [
+    { path: `src/hooks/useAuth${typeExt}`, type: "file", purpose: "Authentication state and operations", module: "Auth Module", exports: ["useAuth"], imports: ["supabaseClient"], fileType: "hook" },
+    { path: `src/hooks/useSubscription${typeExt}`, type: "file", purpose: "Subscription status and operations", module: "Payment Module", exports: ["useSubscription"], imports: ["supabaseClient"], fileType: "hook" },
+    { path: `src/hooks/usePayment${typeExt}`, type: "file", purpose: "Payment processing logic", module: "Payment Module", exports: ["usePayment"], imports: ["razorpayClient"], fileType: "hook" },
+    { path: `src/hooks/index${typeExt}`, type: "file", purpose: "Barrel export for hooks", module: "shared", exports: ["*"], imports: [], fileType: "util" }
+  ];
+  
+  const serviceFiles = [
+    { path: `src/services/supabaseClient${typeExt}`, type: "file", purpose: "Supabase client singleton", module: "Data Layer", exports: ["supabaseClient"], imports: ["@supabase/supabase-js"], fileType: "service" },
+    { path: `src/services/razorpayClient${typeExt}`, type: "file", purpose: "Razorpay SDK wrapper", module: "API Client", exports: ["razorpayClient"], imports: ["razorpay"], fileType: "service" },
+    { path: `src/services/apiWrapper${typeExt}`, type: "file", purpose: "Error handling and retry logic", module: "API Client", exports: ["apiWrapper"], imports: [], fileType: "service" },
+    { path: `src/services/index${typeExt}`, type: "file", purpose: "Barrel export", module: "shared", exports: ["*"], imports: [], fileType: "util" }
+  ];
+  
+  const typeFiles = opts.ts ? [
+    { path: "src/types/user.ts", type: "file", purpose: "User entity types", module: "Auth Module", exports: ["User", "UserProfile"], imports: [], fileType: "type" },
+    { path: "src/types/subscription.ts", type: "file", purpose: "Subscription types", module: "Payment Module", exports: ["Subscription", "Plan"], imports: [], fileType: "type" },
+    { path: "src/types/payment.ts", type: "file", purpose: "Payment types", module: "Payment Module", exports: ["Payment", "PaymentStatus"], imports: [], fileType: "type" },
+    { path: "src/types/index.ts", type: "file", purpose: "Barrel export for types", module: "shared", exports: ["*"], imports: [], fileType: "util" }
+  ] : [];
+  
+  const rootFiles = [
+    { path: `src/App.${ext}`, type: "file", purpose: "Root app component with routing", module: "shared", exports: ["App"], imports: ["react-router", "AuthGuard"], fileType: "component" },
+    { path: `src/main${typeExt}`, type: "file", purpose: "Vite entry point", module: "shared", exports: [], imports: ["App"], fileType: "config" },
+    { path: "src/vite-env.d.ts", type: "file", purpose: "Vite type definitions", module: "shared", exports: [], imports: [], fileType: "type" }
+  ];
+  
+  const configFiles = [
+    { path: "vite.config.ts", type: "file", purpose: "Vite build configuration", module: "shared", exports: [], imports: [], fileType: "config" },
+    { path: "tsconfig.json", type: "file", purpose: "TypeScript compiler config", module: "shared", exports: [], imports: [], fileType: "config" },
+    { path: ".env.example", type: "file", purpose: "Environment variable template", module: "shared", exports: [], imports: [], fileType: "config" },
+    { path: "package.json", type: "file", purpose: "Dependencies and scripts", module: "shared", exports: [], imports: [], fileType: "config" }
+  ];
+  
+  const testFiles = opts.tests ? [
+    { path: `src/components/Auth/LoginForm.test.${ext}`, type: "file", purpose: "LoginForm unit tests", module: "Auth Module", exports: [], imports: ["vitest", "LoginForm"], fileType: "test" },
+    { path: `src/hooks/useAuth.test${typeExt}`, type: "file", purpose: "useAuth hook tests", module: "Auth Module", exports: [], imports: ["vitest", "useAuth"], fileType: "test" }
+  ] : [];
+  
+  const allFiles = [...authFiles, ...dashboardFiles, ...paymentFiles, ...hookFiles, ...serviceFiles, ...typeFiles, ...rootFiles, ...configFiles, ...testFiles];
+  
+  // Build tree structure
+  const tree = [
+    {
+      path: "src/",
+      type: "folder",
+      purpose: "Application source code",
+      children: [
+        {
+          path: "src/components/",
+          type: "folder",
+          purpose: "React components organized by module",
+          children: [
+            {
+              path: "src/components/Auth/",
+              type: "folder",
+              purpose: "Authentication components",
+              module: "Auth Module",
+              children: authFiles
+            },
+            {
+              path: "src/components/Dashboard/",
+              type: "folder",
+              purpose: "Dashboard components",
+              module: "Dashboard",
+              children: dashboardFiles
+            },
+            {
+              path: "src/components/Payment/",
+              type: "folder",
+              purpose: "Payment and subscription components",
+              module: "Payment Module",
+              children: paymentFiles
+            }
+          ]
+        },
+        {
+          path: "src/hooks/",
+          type: "folder",
+          purpose: "Custom React hooks",
+          children: hookFiles
+        },
+        {
+          path: "src/services/",
+          type: "folder",
+          purpose: "API clients and service layer",
+          children: serviceFiles
+        },
+        opts.ts ? {
+          path: "src/types/",
+          type: "folder",
+          purpose: "TypeScript type definitions",
+          children: typeFiles
+        } : null,
+        ...rootFiles
+      ].filter(Boolean)
+    },
+    ...configFiles
+  ];
+  
+  // Module mapping
+  const moduleMapping = [
+    {
+      module: "Auth Module",
+      files: authFiles.map(f => f.path).concat(["src/hooks/useAuth" + typeExt]),
+      entryPoint: "src/components/Auth/index" + typeExt,
+      description: "Complete authentication system: login, register, password reset, route guards, and auth state management"
+    },
+    {
+      module: "Dashboard",
+      files: dashboardFiles.map(f => f.path),
+      entryPoint: "src/components/Dashboard/index" + typeExt,
+      description: "User dashboard with profile, settings, and usage stats"
+    },
+    {
+      module: "Payment Module",
+      files: paymentFiles.map(f => f.path).concat([
+        "src/hooks/useSubscription" + typeExt,
+        "src/hooks/usePayment" + typeExt
+      ]),
+      entryPoint: "src/components/Payment/index" + typeExt,
+      description: "Subscription management, plan selection, Razorpay integration, and payment processing"
+    },
+    {
+      module: "Data Layer",
+      files: ["src/services/supabaseClient" + typeExt],
+      entryPoint: "src/services/supabaseClient" + typeExt,
+      description: "Supabase client configuration and RLS-aware database access"
+    },
+    {
+      module: "API Client",
+      files: ["src/services/razorpayClient" + typeExt, "src/services/apiWrapper" + typeExt],
+      entryPoint: "src/services/index" + typeExt,
+      description: "External API wrappers with error handling and retry logic"
+    }
+  ];
+  
+  // Agent instructions
+  const agentInstructions = {
+    createOrder: [
+      "1. Create root config files (vite.config.ts, tsconfig.json, package.json, .env.example)",
+      "2. Create type definitions (src/types/*) if TypeScript enabled",
+      "3. Create service layer (src/services/*) - Supabase and Razorpay clients",
+      "4. Create hooks (src/hooks/*) - useAuth, useSubscription, usePayment",
+      "5. Create Auth components (src/components/Auth/*)",
+      "6. Create Dashboard components (src/components/Dashboard/*)",
+      "7. Create Payment components (src/components/Payment/*)",
+      "8. Create root App component and main entry (src/App.tsx, src/main.ts)",
+      "9. Create barrel exports (index files) for each module",
+      "10. Create test stubs if tests enabled"
+    ],
+    criticalNotes: [
+      "DO NOT hardcode Supabase URL or Razorpay keys - use environment variables",
+      "DO NOT implement actual Razorpay payment logic without webhook verification",
+      "DO NOT skip error boundaries around payment operations",
+      "Ensure useAuth hook wraps Supabase auth state changes properly",
+      "All barrel exports must use named exports, not default exports",
+      "Protected routes MUST wrap components with AuthGuard",
+      "Razorpay script must be loaded dynamically, not via CDN in index.html"
+    ],
+    envVars: [
+      "VITE_SUPABASE_URL",
+      "VITE_SUPABASE_ANON_KEY",
+      "VITE_RAZORPAY_KEY_ID"
+    ],
+    rootFiles: ["vite.config.ts", "tsconfig.json", "package.json", ".env.example"]
+  };
+  
+  return {
+    projectName: design.projectName || "React Supabase Razorpay App",
+    folderStructure: {
+      description: "Feature-based folder structure with components organized by module, shared hooks, service layer for API clients, and TypeScript types",
+      tree: tree
+    },
+    fileManifest: allFiles,
+    moduleMapping: moduleMapping,
+    agentInstructions: agentInstructions
+  };
+}
+
+// ── GENERATE ───────────────────────────────────────────────────────────────
+async function generate() {
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = useOllama ? '🤖 Calling Ollama…' : '<span class="loader"></span> Generating...';
+
+  let design = DEFAULT_DESIGN;
+  const pastedDesign = document.getElementById('design-input').value.trim();
+  if (pastedDesign) { try { design = JSON.parse(pastedDesign); } catch(e) {} }
+
+  try {
+    // Step 1: Mock generates the complete file structure (always reliable)
+    await new Promise(resolve => setTimeout(resolve, useOllama ? 400 : 2000 + Math.random() * 1000));
+    const mockResult = generateMockBlueprint(design, opts);
+    mockResult._modelSource = 'mock';
+
+    if (!useOllama) {
+      blueprintData = mockResult;
+      renderAll(blueprintData, design);
+      btn.disabled = false;
+      btn.innerHTML = '↺ Regenerate';
+      return;
+    }
+
+    // Step 2: Ollama enriches module descriptions and agent notes (text-only JSON)
+    btn.innerHTML = '🤖 Mistral thinking…';
+
+    const moduleNames = (design.modules || []).map(m => m.name).join(', ');
+    const projectName = design.projectName || 'React App';
+    const stack = `React, ${opts.ts ? 'TypeScript' : 'JavaScript'}, ${opts.vite ? 'Vite' : 'CRA'}, Supabase, Razorpay`;
+
+    const ollamaPrompt =
+`You are a senior React architect reviewing an implementation blueprint.
+Project: ${projectName}
+Stack: ${stack}
+Modules: ${moduleNames}
+
+Respond with ONLY this JSON object (no markdown, no code blocks, no extra text):
+{
+  "moduleSummaries": [
+    {"module": "Auth Module", "insight": "one sentence about implementation priority for this module"},
+    {"module": "Dashboard", "insight": "one sentence about implementation priority"},
+    {"module": "Payment Module", "insight": "one sentence about implementation priority"},
+    {"module": "Data Layer", "insight": "one sentence about implementation priority"},
+    {"module": "API Client", "insight": "one sentence about implementation priority"}
+  ],
+  "agentNotes": [
+    "practical tip 1 for the stage 3 agent",
+    "practical tip 2 for the stage 3 agent",
+    "practical tip 3 for the stage 3 agent"
+  ]
+}
+
+Rules:
+- Each insight is ONE sentence only
+- agentNotes are practical implementation tips
+- Do NOT include file paths, code, or markdown
+- Respond with ONLY the JSON object`;
+
+    let ollamaData = null;
+    try {
+      const raw = await callOllama(ollamaPrompt);
+      console.log('[Ollama] raw response:', raw);
+      ollamaData = repairJSON(raw);
+      console.log('[Ollama] parsed result:', ollamaData);
+    } catch(ollamaErr) {
+      console.warn('[Ollama] failed:', ollamaErr.message, '— falling back to mock');
+      mockResult._modelSource = 'ollama-partial';
+      mockResult._ollamaError = ollamaErr.message;
+      blueprintData = mockResult;
+      renderAll(blueprintData, design);
+      btn.disabled = false;
+      btn.innerHTML = '↺ Regenerate';
+      return;
+    }
+
+    // Step 3: Merge Ollama enrichment into mock blueprint
+    const enriched = { ...mockResult, _modelSource: 'ollama' };
+
+    // Enrich module descriptions
+    if (Array.isArray(ollamaData.moduleSummaries)) {
+      enriched.moduleMapping = mockResult.moduleMapping.map(m => {
+        const hit = ollamaData.moduleSummaries.find(s => s.module === m.module);
+        return hit ? { ...m, description: sanitizeString(hit.insight) } : m;
+      });
+    }
+
+    // Append Ollama agent notes to critical notes
+    if (Array.isArray(ollamaData.agentNotes) && ollamaData.agentNotes.length) {
+      const sanitizedNotes = ollamaData.agentNotes.map(n => sanitizeString(n)).filter(Boolean);
+      enriched.agentInstructions = {
+        ...mockResult.agentInstructions,
+        criticalNotes: [
+          ...(mockResult.agentInstructions.criticalNotes || []),
+          ...sanitizedNotes
+        ]
+      };
+    }
+
+    blueprintData = enriched;
+    renderAll(blueprintData, design);
+
+  } catch(e) {
+    alert('Generation failed: ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '↺ Regenerate';
+}
+
+// ── RENDER TREE ────────────────────────────────────────────────────────────
+const MODULE_COLORS = ['#e879f9','#60a5fa','#34d399','#fb923c','#fbbf24','#f472b6','#a78bfa'];
+let moduleColorMap = {};
+
+function getModuleColor(mod) {
+  if (!moduleColorMap[mod]) {
+    const keys = Object.keys(moduleColorMap);
+    moduleColorMap[mod] = MODULE_COLORS[keys.length % MODULE_COLORS.length];
+  }
+  return moduleColorMap[mod];
+}
+
+function fileIcon(fileType) {
+  const icons = { component:'⬡', hook:'⟳', service:'⚙', type:'T', config:'⚒', test:'✓', util:'◈', folder:'▶' };
+  return icons[fileType] || '·';
+}
+
+function renderTree(nodes, container) {
+  (nodes || []).forEach(node => {
+    if (node.type === 'folder') {
+      const div = document.createElement('div');
+      div.className = 'tree-folder';
+      const count = countFiles(node);
+      div.innerHTML = `
+        <div class="tree-folder-row" onclick="toggleFolder(this)">
+          <span class="tree-folder-icon open">▶</span>
+          <span class="tree-folder-name">${node.path.split('/').filter(Boolean).pop()}/</span>
+          <span class="tree-folder-badge">${count}</span>
+        </div>
+        <div class="tree-children" id="fc-${btoa(node.path).replace(/[^a-z0-9]/gi,'')}"></div>`;
+      container.appendChild(div);
+      const childContainer = div.querySelector('.tree-children');
+      renderTree(node.children || [], childContainer);
+    } else {
+      const color = node.module ? getModuleColor(node.module) : 'var(--muted)';
+      const div = document.createElement('div');
+      div.className = 'tree-file';
+      div.dataset.path = node.path;
+      div.onclick = () => selectFile(node, div);
+      div.innerHTML = `
+        <span class="tree-file-icon" style="color:${color}">${fileIcon(node.fileType)}</span>
+        <span class="tree-file-name">${node.path.split('/').pop()}</span>
+        ${node.module ? `<span class="tree-file-module" style="background:${color}18;color:${color};border-color:${color}28;">${node.module.replace(' Module','')}</span>` : ''}`;
+      container.appendChild(div);
+    }
+  });
+}
+
+function countFiles(node) {
+  if (node.type === 'file') return 1;
+  return (node.children || []).reduce((a, c) => a + countFiles(c), 0);
+}
+
+function toggleFolder(row) {
+  const icon = row.querySelector('.tree-folder-icon');
+  const children = row.nextElementSibling;
+  const isOpen = icon.classList.contains('open');
+  icon.classList.toggle('open', !isOpen);
+  children.style.display = isOpen ? 'none' : 'block';
+}
+
+// ── SELECT FILE ────────────────────────────────────────────────────────────
+function selectFile(node, el) {
+  document.querySelectorAll('.tree-file').forEach(f => f.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedFile = node;
+
+  const color = node.module ? getModuleColor(node.module) : 'var(--c1)';
+  const ph = document.getElementById('fd-placeholder');
+  const content = document.getElementById('fd-content');
+  ph.style.display = 'none';
+  content.style.display = 'block';
+
+  content.innerHTML = `
+    <div class="file-card">
+      <div class="file-card-hdr">
+        <span class="file-card-path">${node.path}</span>
+        ${node.module ? `<span class="file-card-module" style="background:${color}15;color:${color};border-color:${color}25;">${node.module}</span>` : ''}
+        ${node.fileType ? `<span class="file-card-type">${node.fileType}</span>` : ''}
+      </div>
+      <div class="file-card-body">
+        <div class="fc-row">
+          <span class="fc-label">Purpose</span>
+          <span class="fc-val">${node.purpose || '—'}</span>
+        </div>
+        ${(node.exports||[]).length ? `<div class="fc-row">
+          <span class="fc-label">Exports</span>
+          <div class="fc-val"><div class="fc-chips">${(node.exports||[]).map(e=>`<span class="fc-chip exp">${e}</span>`).join('')}</div></div>
+        </div>` : ''}
+        ${(node.imports||[]).length ? `<div class="fc-row">
+          <span class="fc-label">Imports</span>
+          <div class="fc-val"><div class="fc-chips">${(node.imports||[]).map(i=>`<span class="fc-chip dep">${i}</span>`).join('')}</div></div>
+        </div>` : ''}
+        ${node.notes ? `<div class="fc-row">
+          <span class="fc-label">Agent Note</span>
+          <span class="fc-val" style="color:var(--c5);">${node.notes}</span>
+        </div>` : ''}
+      </div>
+    </div>`;
+
+  // Switch to detail tab if not already there
+  document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.out-tab').classList.add('active');
+  document.getElementById('panel-detail').classList.add('active');
+}
+
+// ── RENDER ALL ─────────────────────────────────────────────────────────────
+function renderAll(data, design) {
+  moduleColorMap = {};
+
+  // Model status bar
+  const src = data._modelSource || 'mock';
+  const bar = document.getElementById('model-status-bar');
+  bar.className = src;
+  document.getElementById('msb-icon').textContent =
+    src === 'ollama' ? '🤖' : src === 'ollama-partial' ? '🤖' : '📋';
+  document.getElementById('msb-label').textContent =
+    src === 'ollama' ? 'Ollama Mistral — AI-enriched module insights & agent notes' :
+    src === 'ollama-partial' ? 'Ollama Mistral — structure generated, AI insights unavailable' :
+    'Mock Data — deterministic blueprint';
+  document.getElementById('msb-sub').textContent =
+    src === 'ollama' ? '(mock file tree + Ollama text enrichment)' :
+    src === 'ollama-partial' ? `(Error: ${data._ollamaError || 'unknown'} — open DevTools console for details)` :
+    '(switch to Ollama + Mistral for AI insights)';
+
+  // File count
+  const total = (data.fileManifest || []).length;
+  document.getElementById('file-count').textContent = `${total} files`;
+
+  // Tree
+  const treeBody = document.getElementById('tree-body');
+  treeBody.innerHTML = '';
+  renderTree((data.folderStructure?.tree || []), treeBody);
+
+  // Module mapping
+  const mapPh = document.getElementById('map-placeholder');
+  const mapContent = document.getElementById('map-content');
+  const mapSrc = data._modelSource || 'mock';
+  const mapBadgeCls = mapSrc === 'ollama' ? 'ollama' : mapSrc === 'ollama-partial' ? 'ollama-partial' : 'mock';
+  const mapBadgeLabel = mapSrc === 'ollama' ? '🤖 Ollama Mistral' : mapSrc === 'ollama-partial' ? '🤖 Ollama Mistral (partial)' : '📋 Mock Data';
+  mapPh.style.display = 'none';
+  mapContent.style.display = 'block';
+  mapContent.innerHTML = `
+    <div class="status-bar"><span class="st">✓ ${(data.moduleMapping||[]).length} modules mapped to ${total} files</span><span class="model-badge ${mapBadgeCls}" style="margin-left:auto;">${mapBadgeLabel}</span></div>
+    ${(data.moduleMapping||[]).map(m => {
+      const color = getModuleColor(m.module);
+      return `<div class="mapping-card" style="border-left-color:${color}">
+        <div class="mc-module" style="color:${color}">◆ ${m.module}</div>
+        ${m.description ? `<div style="font-size:11px;color:var(--muted2);margin-bottom:10px;">${m.description}</div>` : ''}
+        <div class="mc-files">
+          ${(m.files||[]).map(f=>`<div class="mc-file" style="color:${color}aa">${f}</div>`).join('')}
+          ${m.entryPoint ? `<div class="mc-purpose">↳ entry: ${m.entryPoint}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('')}`;
+
+  // Agent package
+  buildAgentPackage(data, design);
+
+  // Handover
+  document.getElementById('handover').classList.add('visible');
+  ['tree','manifest','mapping','package'].forEach(id => {
+    const el = document.getElementById('hc-' + id);
+    if (el) { el.classList.add('done'); }
+  });
+}
+
+function syntaxHL(obj) {
+  return JSON.stringify(obj, null, 2)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"([^"]+)"(\s*:)/g,'<span class="t-key">"$1"</span>$2')
+    .replace(/:\s*"([^"]*)"/g,': <span class="t-str">"$1"</span>')
+    .replace(/:\s*(\d+)/g,': <span class="t-num">$1</span>')
+    .replace(/:\s*(true|false)/g,': <span class="t-bool">$1</span>');
+}
+
+function buildAgentPackage(data, design) {
+  const pkg = {
+    _meta: {
+      stage: "Stage 3 Agent Execution Package",
+      generatedAt: new Date().toISOString(),
+      totalFiles: (data.fileManifest||[]).length,
+      instruction: "Create ALL files in fileManifest in the order specified in agentInstructions.createOrder. Do not create any files not listed here. Do not make assumptions about auth flow, folder structure, or naming."
+    },
+    design: design,
+    blueprint: {
+      folderStructure: data.folderStructure,
+      fileManifest: data.fileManifest,
+      moduleMapping: data.moduleMapping,
+      agentInstructions: data.agentInstructions
+    }
+  };
+
+  agentPackageStr = JSON.stringify(pkg, null, 2);
+
+  const pkgPh = document.getElementById('pkg-placeholder');
+  const pkgContent = document.getElementById('pkg-content');
+  pkgPh.style.display = 'none';
+  pkgContent.style.display = 'block';
+
+  const instructions = data.agentInstructions || {};
+  const src = data._modelSource || 'mock';
+  const badgeCls = src === 'ollama' ? 'ollama' : src === 'ollama-partial' ? 'ollama-partial' : 'mock';
+  const badgeLabel = src === 'ollama' ? '🤖 Ollama Mistral' : src === 'ollama-partial' ? '🤖 Ollama Mistral (AI insights unavailable)' : '📋 Mock Data';
+
+  pkgContent.innerHTML = `
+    <div class="pkg-header">
+      <span class="pkg-badge">AGENT PKG</span>
+      <span class="model-badge ${badgeCls}">${badgeLabel}</span>
+      <div class="pkg-desc">
+        <strong>Complete handover for Stage 3 agent.</strong> Contains design spec + folder structure + file manifest (${(data.fileManifest||[]).length} files) + creation order + critical notes. Agent has zero decisions to make.
+      </div>
+    </div>
+
+    ${(instructions.criticalNotes||[]).length ? `
+    <div class="code-block" style="border-color:rgba(251,191,36,0.2);">
+      <div class="code-block-hdr" style="background:rgba(251,191,36,0.05);">
+        <span class="code-block-name" style="color:var(--c5);">⚠ Critical Notes for Agent</span>
+        <span class="code-block-desc">Do not skip these</span>
+      </div>
+      <div class="code-body" style="white-space:normal;">
+        ${(instructions.criticalNotes||[]).map(n=>`<div style="padding:4px 0;color:#cc9900;border-bottom:1px solid #1a1a00;font-size:11px;">• ${n}</div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${(instructions.createOrder||[]).length ? `
+    <div class="code-block">
+      <div class="code-block-hdr">
+        <span class="code-block-name">Creation Order</span>
+        <span class="code-block-desc">Agent follows this exact sequence</span>
+      </div>
+      <div class="code-body" style="white-space:normal;max-height:200px;">
+        ${(instructions.createOrder||[]).map((f,i)=>`<div style="padding:2px 0;font-size:11px;"><span style="color:var(--muted);min-width:28px;display:inline-block;">${String(i+1).padStart(2,'0')}.</span> <span style="color:var(--c4);">${f}</span></div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${(instructions.envVars||[]).length ? `
+    <div class="code-block">
+      <div class="code-block-hdr">
+        <span class="code-block-name">.env.example</span>
+        <span class="code-block-desc">Agent creates this file</span>
+      </div>
+      <div class="code-body">${(instructions.envVars||[]).map(v=>`<span class="t-key">${v}</span>=<span class="t-str">your_value_here</span>`).join('\n')}</div>
+    </div>` : ''}
+
+    <div class="code-block">
+      <div class="code-block-hdr">
+        <span class="code-block-name">agent-execution-package.json</span>
+        <span class="code-block-desc">Full package — copy to agent</span>
+        <button class="copy-btn" onclick="copyAgentPackage()">⎘ copy all</button>
+      </div>
+      <div class="code-body">${syntaxHL({_meta: pkg._meta, totalFiles: (data.fileManifest||[]).length, modules: (data.moduleMapping||[]).map(m=>m.module), firstFileManifestEntry: (data.fileManifest||[])[0] || {}})}<span class="t-comment">\n// ... ${(data.fileManifest||[]).length} total files in full package\n// Use ⎘ copy button above to get complete JSON</span></div>
+    </div>`;
+}
+
+function copyAgentPackage() {
+  if (!agentPackageStr) { alert('Generate the blueprint first.'); return; }
+  navigator.clipboard.writeText(agentPackageStr)
+    .then(() => {
+      const btn = document.querySelector('.ho-btn');
+      const prev = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = prev, 2000);
+    })
+    .catch(() => alert('Copy failed — please copy from the code block manually.'));
+}
+</script>
+</body>
+</html>

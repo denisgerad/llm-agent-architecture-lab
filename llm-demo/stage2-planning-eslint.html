@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 2 — Planning: Rules & Package Definition</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap');
+
+:root {
+  --bg: #09090e;
+  --surface: #0e0e16;
+  --card: #12121a;
+  --card2: #161620;
+  --border: #1c1c28;
+  --border2: #252535;
+  --c1: #a78bfa;   /* planning purple */
+  --c2: #34d399;   /* confirm green */
+  --c3: #fb923c;   /* agent orange - stage 3 teaser */
+  --c1-dim: rgba(167,139,250,0.08);
+  --c2-dim: rgba(52,211,153,0.07);
+  --text: #e2e4f0;
+  --muted: #5a5a78;
+  --muted2: #8888aa;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Fraunces', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 12px; min-height: 100vh; }
+
+/* ── PIPELINE HEADER ── */
+.pipeline {
+  display: flex;
+  align-items: stretch;
+  padding: 0 40px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.pipe-stage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px 16px 0;
+  flex-shrink: 0;
+}
+.pipe-arrow { color: var(--border2); font-size: 16px; padding: 0 4px; }
+.pipe-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+.pipe-done .pipe-num { background: rgba(52,211,153,0.15); color: var(--c2); border: 1px solid rgba(52,211,153,0.2); }
+.pipe-active .pipe-num { background: rgba(167,139,250,0.2); color: var(--c1); border: 1px solid rgba(167,139,250,0.3); box-shadow: 0 0 12px rgba(167,139,250,0.2); }
+.pipe-future .pipe-num { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+.pipe-info { display: flex; flex-direction: column; gap: 2px; }
+.pipe-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
+.pipe-done .pipe-label { color: var(--c2); }
+.pipe-active .pipe-label { color: var(--c1); }
+.pipe-future .pipe-label { color: var(--muted); }
+.pipe-name { font-size: 11px; font-weight: 600; }
+.pipe-done .pipe-name { color: #7799aa; }
+.pipe-active .pipe-name { color: var(--text); }
+.pipe-future .pipe-name { color: var(--muted); }
+
+/* ── HEADER ── */
+header {
+  padding: 36px 40px 28px;
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+header::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c1), transparent);
+  opacity: 0.3;
+}
+.eyebrow { font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: var(--c1); opacity: 0.7; margin-bottom: 12px; }
+h1 { font-family: var(--serif); font-size: clamp(22px, 3vw, 36px); font-weight: 300; color: #eef0ff; line-height: 1.2; }
+h1 em { color: var(--c1); font-style: italic; }
+.subtitle { margin-top: 10px; font-size: 11px; color: var(--muted2); line-height: 1.7; max-width: 600px; }
+
+/* ── DESIGN CONTEXT BAR ── */
+.context-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+}
+.context-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+.ctx-tab {
+  padding: 12px 20px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.ctx-tab.active { color: var(--c1); border-bottom-color: var(--c1); }
+.ctx-body { padding: 16px 0; display: none; }
+.ctx-body.active { display: block; }
+.design-summary {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;
+}
+.design-module-pill {
+  padding: 8px 12px; background: var(--card); border: 1px solid var(--border2);
+  border-radius: 6px; display: flex; align-items: center; gap: 8px;
+}
+.dm-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c2); flex-shrink: 0; }
+.dm-name { font-size: 11px; color: var(--text); }
+.dm-tech { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.paste-area {
+  width: 100%; background: var(--card); border: 1px solid var(--border2); border-radius: 6px;
+  color: var(--muted2); font-family: var(--mono); font-size: 11px; padding: 12px 14px;
+  resize: vertical; min-height: 80px; line-height: 1.6; outline: none;
+  transition: border-color 0.2s;
+}
+.paste-area:focus { border-color: var(--c1); color: var(--text); }
+.ctx-action {
+  margin-top: 10px; padding: 8px 18px; background: var(--c1-dim); border: 1px solid rgba(167,139,250,0.2);
+  color: var(--c1); font-family: var(--mono); font-size: 11px; border-radius: 6px; cursor: pointer;
+  transition: all 0.2s; letter-spacing: 1px;
+}
+.ctx-action:hover { background: rgba(167,139,250,0.15); }
+
+/* ── MAIN LAYOUT ── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  min-height: calc(100vh - 280px);
+}
+@media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } }
+
+/* ── SIDEBAR: Controls ── */
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  padding: 24px 20px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.sidebar-section-title {
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.sidebar-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* Toggle groups */
+.toggle-group { display: flex; flex-direction: column; gap: 6px; }
+.toggle-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; background: var(--card); border-radius: 6px; border: 1px solid var(--border);
+  cursor: pointer; transition: border-color 0.2s;
+}
+.toggle-item:hover { border-color: var(--border2); }
+.toggle-item.active { border-color: rgba(167,139,250,0.3); background: var(--c1-dim); }
+.toggle-label { font-size: 11px; color: var(--muted2); }
+.toggle-item.active .toggle-label { color: var(--text); }
+.toggle-switch {
+  width: 28px; height: 16px; border-radius: 8px; background: var(--border2);
+  position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle-item.active .toggle-switch { background: var(--c1); }
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px; border-radius: 50%; background: #fff;
+  transition: transform 0.2s;
+}
+.toggle-item.active .toggle-switch::after { transform: translateX(12px); }
+
+/* Severity selects */
+.rule-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 10px; background: var(--card); border-radius: 5px; border: 1px solid var(--border);
+  margin-bottom: 5px;
+}
+.rule-name { font-size: 10px; color: var(--muted2); flex: 1; }
+.rule-select {
+  background: var(--card2); border: 1px solid var(--border2); color: var(--text);
+  font-family: var(--mono); font-size: 10px; border-radius: 4px; padding: 3px 6px;
+  cursor: pointer; outline: none;
+}
+.rule-select:focus { border-color: var(--c1); }
+
+/* Strictness slider */
+.strictness-row { display: flex; flex-direction: column; gap: 8px; }
+.strictness-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); }
+input[type=range] {
+  width: 100%; accent-color: var(--c1); cursor: pointer;
+}
+
+/* Generate button */
+.gen-btn {
+  width: 100%; padding: 12px; background: var(--c1); color: #fff;
+  border: none; border-radius: 8px; font-family: var(--mono); font-size: 12px;
+  font-weight: 700; cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+}
+.gen-btn:hover { background: #c4b5fd; color: #1a0030; }
+.gen-btn:disabled { background: #1e1a2e; color: #333355; cursor: not-allowed; }
+
+/* ── OUTPUT AREA ── */
+.output-area {
+  display: flex; flex-direction: column;
+}
+
+.output-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface); padding: 0 24px; gap: 0; overflow-x: auto;
+}
+.out-tab {
+  padding: 14px 20px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+}
+.out-tab:hover { color: var(--text); }
+.out-tab.active { color: var(--c1); border-bottom-color: var(--c1); }
+.out-tab .file-tag {
+  font-size: 9px; padding: 2px 6px; border-radius: 3px;
+  background: var(--c1-dim); color: var(--c1); border: 1px solid rgba(167,139,250,0.15);
+}
+.out-tab.active .file-tag { background: rgba(167,139,250,0.15); }
+
+.output-panels { flex: 1; position: relative; }
+.out-panel { display: none; padding: 24px; height: 100%; overflow-y: auto; }
+.out-panel.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* Code blocks */
+.code-file {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 8px;
+  overflow: hidden; margin-bottom: 20px;
+}
+.code-file-header {
+  padding: 10px 16px; background: var(--card2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.code-file-name { font-size: 11px; color: var(--c1); font-weight: 600; }
+.code-file-desc { font-size: 10px; color: var(--muted); margin-left: auto; }
+.copy-btn {
+  padding: 3px 10px; background: transparent; border: 1px solid var(--border2);
+  color: var(--muted); font-family: var(--mono); font-size: 10px; border-radius: 4px;
+  cursor: pointer; transition: all 0.2s;
+}
+.copy-btn:hover { border-color: var(--c1); color: var(--c1); }
+.code-body {
+  padding: 16px; font-size: 11px; line-height: 1.8; overflow-x: auto;
+  white-space: pre; color: #b0b0cc;
+}
+/* Syntax highlights */
+.t-key { color: #a78bfa; }
+.t-str { color: #86efac; }
+.t-num { color: #fb923c; }
+.t-bool { color: #67e8f9; }
+.t-comment { color: #3a3a58; font-style: italic; }
+.t-rule { color: #f9a8d4; }
+.t-off { color: #4a4a6a; }
+
+/* Reasoning panel */
+.reasoning-card {
+  background: var(--card); border: 1px solid var(--border2); border-left: 3px solid var(--c1);
+  border-radius: 6px; padding: 14px 16px; margin-bottom: 12px;
+}
+.rc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.rc-icon { font-size: 14px; }
+.rc-title { font-size: 11px; font-weight: 700; color: var(--c1); }
+.rc-body { font-size: 11px; color: var(--muted2); line-height: 1.7; }
+.rc-body strong { color: var(--text); }
+.rc-body .why { color: var(--c2); }
+.rc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.rc-tag {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  background: rgba(167,139,250,0.08); color: rgba(167,139,250,0.7);
+  border: 1px solid rgba(167,139,250,0.12);
+}
+
+/* Placeholder */
+.out-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 400px; gap: 14px; text-align: center; color: var(--muted);
+}
+.out-placeholder-icon { font-size: 36px; opacity: 0.25; }
+.out-placeholder-text { font-size: 11px; letter-spacing: 1px; line-height: 1.7; }
+
+/* ── HANDOVER BANNER ── */
+.handover-banner {
+  border-top: 1px solid var(--border);
+  padding: 20px 40px;
+  background: linear-gradient(90deg, rgba(251,146,60,0.05) 0%, transparent 60%);
+  display: none; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.handover-banner.visible { display: flex; animation: fadeIn 0.4s ease; }
+.handover-badge {
+  padding: 6px 14px; background: rgba(251,146,60,0.15); color: var(--c3);
+  border: 1px solid rgba(251,146,60,0.25); border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: 2px; white-space: nowrap;
+}
+.handover-text { font-size: 12px; color: var(--muted2); line-height: 1.6; flex: 1; }
+.handover-text strong { color: var(--text); }
+.handover-btn {
+  padding: 10px 22px; background: var(--c3); color: #fff; border: none;
+  border-radius: 8px; font-family: var(--mono); font-size: 11px; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.2s; white-space: nowrap;
+  opacity: 0.5; cursor: not-allowed;
+}
+.handover-checklist { display: flex; gap: 16px; flex-wrap: wrap; }
+.hc-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.hc-item.done { color: var(--c2); }
+.hc-item .hc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.hc-item.done .hc-dot { background: var(--c2); box-shadow: 0 0 6px var(--c2); }
+
+/* Loader */
+.loader { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(167,139,250,0.2); border-top-color: var(--c1); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.status-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c1-dim); border-radius: 6px; margin-bottom: 16px; }
+.status-row .status-text { font-size: 11px; color: var(--c1); }
+</style>
+</head>
+<body>
+
+<!-- PIPELINE -->
+<div class="pipeline">
+  <div class="pipe-stage pipe-done">
+    <div class="pipe-num">✓</div>
+    <div class="pipe-info">
+      <div class="pipe-label">Stage 1</div>
+      <div class="pipe-name">Design (LLM)</div>
+    </div>
+  </div>
+  <div class="pipe-arrow">›</div>
+  <div class="pipe-stage pipe-active">
+    <div class="pipe-num">2</div>
+    <div class="pipe-info">
+      <div class="pipe-label">Stage 2 — Now</div>
+      <div class="pipe-name">Planning (LLM)</div>
+    </div>
+  </div>
+  <div class="pipe-arrow">›</div>
+  <div class="pipe-stage pipe-future">
+    <div class="pipe-num">3</div>
+    <div class="pipe-info">
+      <div class="pipe-label">Stage 3 — Next</div>
+      <div class="pipe-name">Execution (Agent)</div>
+    </div>
+  </div>
+  <div class="pipe-arrow">›</div>
+  <div class="pipe-stage pipe-future">
+    <div class="pipe-num">4</div>
+    <div class="pipe-info">
+      <div class="pipe-label">Stage 4</div>
+      <div class="pipe-name">Testing (Agent)</div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="eyebrow">Stage 2 // Planning Phase</div>
+  <h1>Define <em>Rules & Packages</em><br>for Agent Handover</h1>
+  <p class="subtitle">LLM reads your Stage 1 design output and generates a precise ESLint config + package.json tailored to your stack — a clean, reviewable spec the agent will execute exactly in Stage 3.</p>
+</header>
+
+<!-- DESIGN CONTEXT -->
+<div class="context-bar">
+  <div class="context-tabs">
+    <div class="ctx-tab active" onclick="switchCtx('preset')">Use Stage 1 Preset</div>
+    <div class="ctx-tab" onclick="switchCtx('paste')">Paste Your Design JSON</div>
+  </div>
+  <div class="ctx-body active" id="ctx-preset">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:12px;">DETECTED STACK FROM STAGE 1</div>
+    <div class="design-summary" id="module-pills">
+      <!-- filled by JS -->
+    </div>
+  </div>
+  <div class="ctx-body" id="ctx-paste">
+    <textarea class="paste-area" id="paste-json" placeholder='Paste your Stage 1 JSON here: { "projectName": "...", "modules": [...], "designDecisions": [...] }'></textarea>
+    <button class="ctx-action" onclick="loadPastedDesign()">↳ Load Design</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div>
+      <div class="sidebar-section-title">Strictness Level</div>
+      <div class="strictness-row">
+        <div class="strictness-labels"><span>Lenient</span><span>Strict</span><span>Hardcore</span></div>
+        <input type="range" id="strictness" min="1" max="3" value="2" oninput="updateStrictness(this.value)">
+        <div style="font-size:10px;color:var(--c1);text-align:center;margin-top:4px;" id="strictness-label">Strict (recommended)</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-section-title">Rule Categories</div>
+      <div class="toggle-group">
+        <div class="toggle-item active" id="tog-react" onclick="toggleRule('react')">
+          <span class="toggle-label">React / JSX Rules</span>
+          <span class="toggle-switch"></span>
+        </div>
+        <div class="toggle-item active" id="tog-ts" onclick="toggleRule('ts')">
+          <span class="toggle-label">TypeScript Rules</span>
+          <span class="toggle-switch"></span>
+        </div>
+        <div class="toggle-item active" id="tog-imports" onclick="toggleRule('imports')">
+          <span class="toggle-label">Import Order</span>
+          <span class="toggle-switch"></span>
+        </div>
+        <div class="toggle-item active" id="tog-a11y" onclick="toggleRule('a11y')">
+          <span class="toggle-label">Accessibility (a11y)</span>
+          <span class="toggle-switch"></span>
+        </div>
+        <div class="toggle-item" id="tog-perf" onclick="toggleRule('perf')">
+          <span class="toggle-label">Performance Hints</span>
+          <span class="toggle-switch"></span>
+        </div>
+        <div class="toggle-item" id="tog-security" onclick="toggleRule('security')">
+          <span class="toggle-label">Security (no-eval etc)</span>
+          <span class="toggle-switch"></span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-section-title">Key Rule Severities</div>
+      <div class="rule-row">
+        <span class="rule-name">no-unused-vars</span>
+        <select class="rule-select" id="r-unused"><option value="error">error</option><option value="warn">warn</option><option value="off">off</option></select>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name">no-console</span>
+        <select class="rule-select" id="r-console"><option value="warn">warn</option><option value="error">error</option><option value="off">off</option></select>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name">prefer-const</span>
+        <select class="rule-select" id="r-const"><option value="error">error</option><option value="warn">warn</option><option value="off">off</option></select>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name">react-hooks/rules</span>
+        <select class="rule-select" id="r-hooks"><option value="error">error</option><option value="warn">warn</option><option value="off">off</option></select>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name">eqeqeq</span>
+        <select class="rule-select" id="r-eq"><option value="error">error</option><option value="warn">warn</option><option value="off">off</option></select>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-section-title">Nesting Depth Rules</div>
+      <div style="font-size:10px;color:var(--muted);line-height:1.6;margin-bottom:10px;padding:8px 10px;background:var(--card);border-radius:5px;border:1px solid var(--border);">
+        Controls how deep JSX trees, JS blocks, and CSS selectors can nest before lint warns/errors.
+      </div>
+      <div class="rule-row">
+        <span class="rule-name" title="react/jsx-max-depth — limits JSX element nesting">jsx-max-depth</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="r-jsx-depth-val" value="4" min="2" max="8"
+            style="width:38px;background:var(--card2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:4px;padding:3px 5px;text-align:center;">
+          <select class="rule-select" id="r-jsx-depth"><option value="warn">warn</option><option value="error">error</option><option value="off">off</option></select>
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name" title="max-depth — limits JS block nesting (if/for/while)">max-depth (JS)</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="r-js-depth-val" value="4" min="2" max="8"
+            style="width:38px;background:var(--card2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:4px;padding:3px 5px;text-align:center;">
+          <select class="rule-select" id="r-js-depth"><option value="warn">warn</option><option value="error">error</option><option value="off">off</option></select>
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name" title="complexity — cyclomatic complexity cap">complexity</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="r-complexity-val" value="10" min="5" max="20"
+            style="width:38px;background:var(--card2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:4px;padding:3px 5px;text-align:center;">
+          <select class="rule-select" id="r-complexity"><option value="warn">warn</option><option value="error">error</option><option value="off">off</option></select>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="sidebar-section-title" style="font-size:9px;">Stylelint (CSS)</div>
+        <div class="toggle-group">
+          <div class="toggle-item active" id="tog-stylelint" onclick="toggleRule('stylelint')">
+            <span class="toggle-label">Enable Stylelint</span>
+            <span class="toggle-switch"></span>
+          </div>
+        </div>
+        <div class="rule-row" style="margin-top:6px;">
+          <span class="rule-name" title="max-nesting-depth — stylelint CSS selector depth">css nesting depth</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="number" id="r-css-depth-val" value="3" min="1" max="6"
+              style="width:38px;background:var(--card2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:4px;padding:3px 5px;text-align:center;">
+            <select class="rule-select" id="r-css-depth"><option value="error">error</option><option value="warn">warn</option><option value="off">off</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-section-title">Package Options</div>
+      <div class="toggle-group">
+        <div class="toggle-item active" id="tog-prettier" onclick="toggleRule('prettier')">
+          <span class="toggle-label">Include Prettier</span>
+          <span class="toggle-switch"></span>
+        </div>
+        <div class="toggle-item active" id="tog-husky" onclick="toggleRule('husky')">
+          <span class="toggle-label">Husky + lint-staged</span>
+          <span class="toggle-switch"></span>
+        </div>
+        <div class="toggle-item" id="tog-vitest" onclick="toggleRule('vitest')">
+          <span class="toggle-label">Vitest (testing)</span>
+          <span class="toggle-switch"></span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-section-title">Model Selection</div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--muted2);" onclick="setModel(false)">
+          <input type="radio" name="model" value="mock" checked style="accent-color:var(--c1);cursor:pointer;">
+          <span>📋 Mock Data (fast, consistent)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--muted2);" onclick="setModel(true)">
+          <input type="radio" name="model" value="ollama" style="accent-color:var(--c1);cursor:pointer;">
+          <span>🤖 Ollama + Mistral (real AI)</span>
+        </label>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="gen-btn" onclick="generate()">⟳ Generate Config Files</button>
+
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-area">
+    <div class="output-tabs">
+      <div class="out-tab active" onclick="switchTab('eslint')">eslint.config.js <span class="file-tag">.js</span></div>
+      <div class="out-tab" onclick="switchTab('package')">Reasoning <span class="file-tag">why</span></div>
+      <div class="out-tab" onclick="switchTab('pkgjson')">package.json <span class="file-tag">.json</span></div>
+      <div class="out-tab" onclick="switchTab('prettier')">.prettierrc <span class="file-tag">.json</span></div>
+      <div class="out-tab" onclick="switchTab('stylelint')">.stylelintrc <span class="file-tag">.json</span></div>
+      <div class="out-tab" onclick="switchTab('handover')">Agent Brief <span class="file-tag">→ S3</span></div>
+    </div>
+
+    <div class="output-panels">
+      <div class="out-panel active" id="panel-eslint">
+        <div class="out-placeholder" id="ph-eslint">
+          <div class="out-placeholder-icon">⚙</div>
+          <div class="out-placeholder-text">Configure your rules on the left<br>then click Generate to produce your ESLint config</div>
+        </div>
+        <div id="eslint-content" style="display:none;"></div>
+      </div>
+
+      <div class="out-panel" id="panel-package">
+        <div class="out-placeholder" id="ph-package">
+          <div class="out-placeholder-icon">🧠</div>
+          <div class="out-placeholder-text">LLM reasoning for each rule decision<br>will appear here after generation</div>
+        </div>
+        <div id="package-content" style="display:none;"></div>
+      </div>
+
+      <div class="out-panel" id="panel-pkgjson">
+        <div class="out-placeholder" id="ph-pkgjson">
+          <div class="out-placeholder-icon">📦</div>
+          <div class="out-placeholder-text">package.json with all devDependencies<br>tailored to your stack</div>
+        </div>
+        <div id="pkgjson-content" style="display:none;"></div>
+      </div>
+
+      <div class="out-panel" id="panel-prettier">
+        <div class="out-placeholder" id="ph-prettier">
+          <div class="out-placeholder-icon">✦</div>
+          <div class="out-placeholder-text">Prettier config will be generated<br>when the option is enabled</div>
+        </div>
+        <div id="prettier-content" style="display:none;"></div>
+      </div>
+
+      <div class="out-panel" id="panel-stylelint">
+        <div class="out-placeholder" id="ph-stylelint">
+          <div class="out-placeholder-icon">🎨</div>
+          <div class="out-placeholder-text">.stylelintrc with max-nesting-depth<br>and CSS module rules for your stack</div>
+        </div>
+        <div id="stylelint-content" style="display:none;"></div>
+      </div>
+
+      <div class="out-panel" id="panel-handover">
+        <div class="out-placeholder" id="ph-handover">
+          <div class="out-placeholder-icon">→</div>
+          <div class="out-placeholder-text">The agent handover brief will summarise<br>exactly what Stage 3 needs to execute</div>
+        </div>
+        <div id="handover-content" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HANDOVER BANNER -->
+<div class="handover-banner" id="handover-banner">
+  <span class="handover-badge">→ STAGE 3 READY</span>
+  <div>
+    <div class="handover-checklist" id="hc-list">
+      <div class="hc-item done"><span class="hc-dot"></span>Design spec (Stage 1)</div>
+      <div class="hc-item" id="hc-eslint"><span class="hc-dot"></span>eslint.config.js</div>
+      <div class="hc-item" id="hc-pkg"><span class="hc-dot"></span>package.json</div>
+      <div class="hc-item" id="hc-prettier"><span class="hc-dot"></span>.prettierrc</div>
+      <div class="hc-item" id="hc-stylelint"><span class="hc-dot"></span>.stylelintrc</div>
+      <div class="hc-item" id="hc-brief"><span class="hc-dot"></span>Agent brief</div>
+    </div>
+    <div class="handover-text" style="margin-top:8px;">
+      <strong>Stage 3:</strong> The agent receives these files + the design spec and scaffolds the full project — without guessing a single configuration choice.
+    </div>
+  </div>
+  <button class="handover-btn" id="handover-btn">→ Proceed to Stage 3</button>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────
+const toggles = { react:true, ts:true, imports:true, a11y:true, perf:false, security:false, prettier:true, husky:true, vitest:false, stylelint:true };
+let strictness = 2;
+let generated = false;
+let useOllama = false; // Model selection: false = Mock, true = Ollama
+
+const DEFAULT_DESIGN = {
+  projectName: "React Supabase Razorpay App",
+  overview: "A React SPA with Supabase for auth and database, and Razorpay for subscription payments.",
+  modules: [
+    { name: "Auth Module", purpose: "User registration, login, session management", tech: ["React", "Supabase Auth", "JWT"] },
+    { name: "Dashboard", purpose: "Main user interface post-login", tech: ["React", "React Router", "Context API"] },
+    { name: "Payment Module", purpose: "Subscription plans, checkout, webhook handling", tech: ["Razorpay", "Supabase Edge Functions"] },
+    { name: "Data Layer", purpose: "Database access, RLS policies, real-time subscriptions", tech: ["Supabase", "PostgreSQL"] },
+    { name: "API Client", purpose: "Typed HTTP client wrapping Supabase and Razorpay SDKs", tech: ["TypeScript", "Zod"] }
+  ],
+  designDecisions: [
+    { decision: "Use Supabase RLS over custom middleware", reasoning: "Reduces backend surface area and co-locates security with data", tradeoff: "Requires team to learn Postgres RLS syntax" },
+    { decision: "TypeScript throughout", reasoning: "Razorpay and Supabase both have strong TS types; safer payment handling", tradeoff: "Slower initial setup" }
+  ]
+};
+
+let currentDesign = DEFAULT_DESIGN;
+
+// ── INIT ───────────────────────────────────────────────────────────
+window.onload = () => {
+  renderModulePills(currentDesign);
+};
+
+function renderModulePills(design) {
+  const el = document.getElementById('module-pills');
+  el.innerHTML = (design.modules || []).map(m => `
+    <div class="design-module-pill">
+      <span class="dm-dot"></span>
+      <div>
+        <div class="dm-name">${m.name}</div>
+        <div class="dm-tech">${(m.tech||[]).join(' · ')}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── CONTEXT TABS ───────────────────────────────────────────────────
+function switchCtx(tab) {
+  document.querySelectorAll('.ctx-tab').forEach((t,i) => t.classList.toggle('active', ['preset','paste'][i] === tab));
+  document.getElementById('ctx-preset').classList.toggle('active', tab==='preset');
+  document.getElementById('ctx-paste').classList.toggle('active', tab==='paste');
+}
+
+function loadPastedDesign() {
+  try {
+    const raw = document.getElementById('paste-json').value.trim();
+    const parsed = JSON.parse(raw);
+    currentDesign = parsed;
+    renderModulePills(parsed);
+    switchCtx('preset');
+    document.querySelector('.ctx-tab').textContent = 'Your Design ✓';
+  } catch(e) {
+    alert('Invalid JSON. Please paste valid Stage 1 output.');
+  }
+}
+
+// ── TOGGLES ────────────────────────────────────────────────────────
+function toggleRule(key) {
+  toggles[key] = !toggles[key];
+  document.getElementById('tog-' + key).classList.toggle('active', toggles[key]);
+}
+
+function updateStrictness(v) {
+  strictness = parseInt(v);
+  const labels = ['Lenient (prototyping)', 'Strict (recommended)', 'Hardcore (production)'];
+  document.getElementById('strictness-label').textContent = labels[v-1];
+}
+
+// ── OUTPUT TABS ────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// ── SANITIZE STRING ────────────────────────────────────────────────
+function sanitizeString(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    // Remove complete HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Remove partial HTML artifacts
+    .replace(/[{}"']\s*">/g, '')  // {""> or '"> patterns
+    .replace(/">\s*[{}"']/g, '')  // "> followed by punctuation
+    .replace(/"\s*>/g, '"')       // "> at end of quotes
+    .replace(/>\s*"/g, '"')       // > before quotes
+    .replace(/"t-\w+">/g, '')     // "t-bool"> style patterns
+    .replace(/"\s*t-\w+"\s*>/g, '') // " t-bool "> patterns
+    // HTML entities
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    // Clean up multiple spaces
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+
+// ── JSON REPAIR (enhanced for Ollama) ─────────────────────────────
+function repairJSON(raw) {
+  console.log('[JSON] Attempting to parse response...');
+  
+  // Remove markdown code blocks
+  let text = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/,'').trim();
+  
+  // Remove any HTML tags that might have leaked in
+  text = text.replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  
+  // Fix JavaScript string concatenation (e.g., "text" + "more" -> "textmore")
+  text = text.replace(/"\s*\+\s*"/g, '');
+  console.log('[JSON] After string concat fix, first 200 chars:', text.substring(0, 200));
+  
+  // Fix template literals (backticks) to proper JSON strings
+  // Handle multi-line content inside backticks
+  let backtickMatch;
+  while ((backtickMatch = text.match(/:\s*`([\s\S]*?)`/)) !== null) {
+    const content = backtickMatch[1];
+    // Escape backslashes first, then quotes, then newlines
+    const escaped = content
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '')
+      .replace(/\t/g, '\\t');
+    text = text.replace(backtickMatch[0], `: "${escaped}"`);
+  }
+  console.log('[JSON] After backtick conversion, first 300 chars:', text.substring(0, 300));
+  
+  // Try to find JSON object boundaries
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    text = text.substring(firstBrace, lastBrace + 1);
+    console.log('[JSON] Extracted JSON boundaries, length:', text.length);
+  }
+  
+  // Try direct parse first
+  try { 
+    const parsed = JSON.parse(text);
+    console.log('[JSON] ✓ Successfully parsed JSON');
+    return parsed;
+  } catch(e) {
+    console.log('[JSON] Direct parse failed:', e.message);
+  }
+  
+  // Try repair
+  const inStrCheck = s => { let ins=false,esc=false; for(const c of s){if(esc){esc=false;continue;}if(c==='\\'){esc=true;continue;}if(c==='"')ins=!ins;} return ins; };
+  let safe = text;
+  for(let i=text.length-1;i>text.length*0.5;i--){const sl=text.slice(0,i);if(!inStrCheck(sl)){safe=sl.replace(/[,\s]+$/,'');break;}}
+  let opens=[];let ins2=false,esc2=false;
+  for(const c of safe){if(esc2){esc2=false;continue;}if(c==='\\'){esc2=true;continue;}if(c==='"'){ins2=!ins2;continue;}if(ins2)continue;if(c==='{')opens.push('}');if(c==='[')opens.push(']');if(c==='}'||c===']')opens.pop();}
+  try{
+    const repaired = JSON.parse(safe+opens.reverse().join(''));
+    console.log('[JSON] ✓ Successfully repaired and parsed JSON');
+    return repaired;
+  }catch(e2){
+    console.error('[JSON] Repair failed. First 200 chars of text:', text.substring(0, 200));
+    console.error('[JSON] Last 200 chars of text:', text.substring(text.length - 200));
+  }
+  throw new Error('JSON repair failed. Try again.');
+}
+
+// ── OLLAMA API CALL ────────────────────────────────────────────────
+async function callOllama(systemPrompt) {
+  console.log('[Ollama] Starting request to http://localhost:11434/api/chat');
+  const startTime = performance.now();
+  
+  try {
+    const response = await fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'mistral:7b-instruct-q4_K_M',
+        messages: [{ role: 'user', content: systemPrompt }],
+        stream: false,
+        options: { temperature: 0.3, num_predict: 8000 }
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const duration = ((performance.now() - startTime) / 1000).toFixed(1);
+    console.log(`[Ollama] Response received in ${duration}s`);
+    console.log(`[Ollama] Raw response length: ${data.message?.content?.length || 0} chars`);
+    console.log('[Ollama] First 500 chars:', data.message?.content?.substring(0, 500));
+    
+    return { content: data.message.content, _modelSource: 'ollama' };
+  } catch (error) {
+    console.error('[Ollama] Connection failed:', error.message);
+    throw new Error(`Ollama connection failed: ${error.message}`);
+  }
+}
+
+// ── MOCK CONFIG GENERATOR ──────────────────────────────────────────
+function generateMockConfig(opts) {
+  const isReact = opts.react;
+  const isTS = opts.ts;
+  const hasStylelint = opts.stylelint;
+  
+  // Build ESLint config
+  const eslintPlugins = [];
+  const eslintRules = {};
+  
+  if (isReact) {
+    eslintPlugins.push('react', 'react-hooks', 'jsx-a11y');
+  }
+  if (isTS) {
+    eslintPlugins.push('@typescript-eslint');
+  }
+  if (opts.imports) {
+    eslintPlugins.push('import');
+  }
+  
+  // Add rules based on user selections
+  eslintRules['no-unused-vars'] = opts.rules['no-unused-vars'];
+  eslintRules['no-console'] = opts.rules['no-console'];
+  eslintRules['prefer-const'] = opts.rules['prefer-const'];
+  eslintRules['eqeqeq'] = opts.rules['eqeqeq'];
+  
+  if (isReact) {
+    eslintRules['react-hooks/rules-of-hooks'] = opts.rules['react-hooks/rules-of-hooks'];
+    eslintRules['react/jsx-max-depth'] = [opts.rules['react/jsx-max-depth'].severity, { max: opts.rules['react/jsx-max-depth'].max }];
+  }
+  
+  eslintRules['max-depth'] = [opts.rules['max-depth'].severity, opts.rules['max-depth'].max];
+  eslintRules['complexity'] = [opts.rules['complexity'].severity, opts.rules['complexity'].max];
+  
+  const eslintConfigContent = `import js from '@eslint/js';
+${isReact ? "import react from 'eslint-plugin-react';\nimport reactHooks from 'eslint-plugin-react-hooks';\nimport jsxA11y from 'eslint-plugin-jsx-a11y';" : ''}
+${isTS ? "import tseslint from '@typescript-eslint/eslint-plugin';\nimport tsparser from '@typescript-eslint/parser';" : ''}
+${opts.imports ? "import importPlugin from 'eslint-plugin-import';" : ''}
+
+export default [
+  js.configs.recommended,
+  {
+    files: ['**/*.{js,jsx${isTS ? ',ts,tsx' : ''}}'],
+    ${isTS ? "languageOptions: { parser: tsparser }," : ''}
+    plugins: {
+      ${isReact ? "'react': react, 'react-hooks': reactHooks, 'jsx-a11y': jsxA11y," : ''}
+      ${isTS ? "'@typescript-eslint': tseslint," : ''}
+      ${opts.imports ? "'import': importPlugin," : ''}
+    },
+    rules: ${JSON.stringify(eslintRules, null, 2).replace(/"/g, "'")}
+  }
+];`;
+
+  // Build package.json
+  const devDeps = {
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0"
+  };
+  
+  if (isReact) {
+    devDeps["eslint-plugin-react"] = "^7.34.0";
+    devDeps["eslint-plugin-react-hooks"] = "^4.6.0";
+    devDeps["eslint-plugin-jsx-a11y"] = "^6.8.0";
+  }
+  if (isTS) {
+    devDeps["@typescript-eslint/eslint-plugin"] = "^7.0.0";
+    devDeps["@typescript-eslint/parser"] = "^7.0.0";
+    devDeps["typescript"] = "^5.3.0";
+  }
+  if (opts.imports) {
+    devDeps["eslint-plugin-import"] = "^2.29.0";
+  }
+  if (opts.prettier) {
+    devDeps["prettier"] = "^3.2.0";
+    devDeps["eslint-config-prettier"] = "^9.1.0";
+  }
+  if (opts.husky) {
+    devDeps["husky"] = "^9.0.0";
+    devDeps["lint-staged"] = "^15.2.0";
+  }
+  if (opts.vitest) {
+    devDeps["vitest"] = "^1.3.0";
+  }
+  if (hasStylelint) {
+    devDeps["stylelint"] = "^16.2.0";
+    devDeps["stylelint-config-standard"] = "^36.0.0";
+  }
+  
+  const scripts = {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx" + (isTS ? ",ts,tsx" : ""),
+    "lint:fix": "eslint . --ext js,jsx" + (isTS ? ",ts,tsx" : "") + " --fix",
+    "format": opts.prettier ? "prettier --write \"src/**/*.{js,jsx" + (isTS ? ",ts,tsx" : "") + ",css,json}\"" : "echo 'Prettier not enabled'",
+    "test": opts.vitest ? "vitest" : "echo 'No tests configured'"
+  };
+  
+  if (hasStylelint) {
+    scripts["lint:css"] = "stylelint \"src/**/*.css\"";
+  }
+  
+  const pkgJsonContent = JSON.stringify({
+    "name": "my-project",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": scripts,
+    "devDependencies": devDeps
+  }, null, 2);
+  
+  // Prettier config
+  const prettierContent = opts.prettier ? JSON.stringify({
+    "semi": true,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "printWidth": 100
+  }, null, 2) : "";
+  
+  // Stylelint config
+  const stylelintContent = hasStylelint ? JSON.stringify({
+    "extends": "stylelint-config-standard",
+    "rules": {
+      "max-nesting-depth": [opts.rules['stylelint/max-nesting-depth'].max, { "severity": opts.rules['stylelint/max-nesting-depth'].severity }],
+      "color-no-invalid-hex": true,
+      "unit-no-unknown": true,
+      "property-no-unknown": true
+    }
+  }, null, 2) : "";
+  
+  // Generate reasoning
+  const reasoning = [
+    {
+      "rule": "react/jsx-max-depth",
+      "why": isReact ? `Limiting JSX nesting to ${opts.rules['react/jsx-max-depth'].max} prevents deeply nested component trees that are hard to test and reason about` : "N/A",
+      "severity": opts.rules['react/jsx-max-depth'].severity,
+      "tag": "complexity"
+    },
+    {
+      "rule": "max-depth",
+      "why": `Block nesting depth of ${opts.rules['max-depth'].max} keeps control flow readable and reduces cyclomatic complexity`,
+      "severity": opts.rules['max-depth'].severity,
+      "tag": "complexity"
+    },
+    {
+      "rule": "complexity",
+      "why": `Cyclomatic complexity limit of ${opts.rules['complexity'].max} ensures functions remain testable with reasonable branch coverage`,
+      "severity": opts.rules['complexity'].severity,
+      "tag": "complexity"
+    },
+    {
+      "rule": "stylelint/max-nesting-depth",
+      "why": hasStylelint ? `CSS nesting depth of ${opts.rules['stylelint/max-nesting-depth'].max} prevents specificity wars and keeps selectors performant` : "N/A",
+      "severity": hasStylelint ? opts.rules['stylelint/max-nesting-depth'].severity : "off",
+      "tag": "css"
+    },
+    {
+      "rule": "no-unused-vars",
+      "why": "Catches dead code and typos early; set to " + opts.rules['no-unused-vars'] + " for this " + opts.strictness + " config",
+      "severity": opts.rules['no-unused-vars'],
+      "tag": "quality"
+    },
+    {
+      "rule": "no-console",
+      "why": opts.rules['no-console'] === 'error' ? "Console logs cause info leakage in production" : "Console logs acceptable for debugging in this project",
+      "severity": opts.rules['no-console'],
+      "tag": "security"
+    },
+    {
+      "rule": "prefer-const",
+      "why": "Enforces immutability by default, preventing accidental reassignments",
+      "severity": opts.rules['prefer-const'],
+      "tag": "best-practice"
+    },
+    {
+      "rule": "eqeqeq",
+      "why": "Strict equality prevents type coercion bugs that are notoriously hard to debug",
+      "severity": opts.rules['eqeqeq'],
+      "tag": "correctness"
+    }
+  ];
+  
+  if (isReact) {
+    reasoning.push({
+      "rule": "react-hooks/rules-of-hooks",
+      "why": "Enforces hooks are only called at top level, preventing React state corruption",
+      "severity": opts.rules['react-hooks/rules-of-hooks'],
+      "tag": "react"
+    });
+  }
+  
+  reasoning.push({
+    "rule": opts.prettier ? "Prettier integration" : "No formatter",
+    "why": opts.prettier ? "Prettier removes all style debates; team focuses on logic not formatting" : "Manual formatting for this project",
+    "severity": "N/A",
+    "tag": "dx"
+  });
+  
+  // Agent brief
+  const agentBrief = {
+    "summary": `Install ${Object.keys(devDeps).length} dev dependencies and verify linting works on the project. ${hasStylelint ? 'Includes stylelint for CSS.' : ''}`,
+    "commands": [
+      "npm install",
+      "npm run lint",
+      hasStylelint ? "npm run lint:css" : null,
+      opts.prettier ? "npm run format -- --check" : null
+    ].filter(Boolean),
+    "files": [
+      "eslint.config.js",
+      "package.json",
+      opts.prettier ? ".prettierrc" : null,
+      hasStylelint ? ".stylelintrc" : null,
+      opts.husky ? ".husky/pre-commit" : null
+    ].filter(Boolean),
+    "warnings": [
+      "Ensure Node.js 18+ is installed for ESLint 9 flat config support",
+      isTS ? "TypeScript parser may conflict with existing tsconfig.json" : null,
+      opts.husky ? "Husky requires git init if not already initialized" : null
+    ].filter(Boolean)
+  };
+  
+  return {
+    eslintConfig: eslintConfigContent,
+    pkgJson: pkgJsonContent,
+    prettierrc: prettierContent,
+    stylelintrc: stylelintContent,
+    reasoning: reasoning,
+    agentBrief: agentBrief,
+    _modelSource: 'mock'
+  };
+}
+
+// ── GENERATE ────────────────────────────────────────────────────────
+async function generate() {
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Generating...';
+
+  // Build context
+  const opts = {
+    strictness: ['lenient','strict','hardcore'][strictness-1],
+    react: toggles.react, ts: toggles.ts, imports: toggles.imports,
+    a11y: toggles.a11y, perf: toggles.perf, security: toggles.security,
+    prettier: toggles.prettier, husky: toggles.husky, vitest: toggles.vitest,
+    stylelint: toggles.stylelint,
+    rules: {
+      'no-unused-vars': document.getElementById('r-unused').value,
+      'no-console': document.getElementById('r-console').value,
+      'prefer-const': document.getElementById('r-const').value,
+      'react-hooks/rules-of-hooks': document.getElementById('r-hooks').value,
+      eqeqeq: document.getElementById('r-eq').value,
+      'react/jsx-max-depth': { severity: document.getElementById('r-jsx-depth').value, max: parseInt(document.getElementById('r-jsx-depth-val').value) },
+      'max-depth': { severity: document.getElementById('r-js-depth').value, max: parseInt(document.getElementById('r-js-depth-val').value) },
+      'complexity': { severity: document.getElementById('r-complexity').value, max: parseInt(document.getElementById('r-complexity-val').value) },
+      'stylelint/max-nesting-depth': { severity: document.getElementById('r-css-depth').value, max: parseInt(document.getElementById('r-css-depth-val').value) }
+    }
+  };
+
+  // Ollama only generates the reasoning + brief (pure text, no code)
+  // Config files are generated by the mock generator (always correct)
+  const ollamaPrompt = `You are a senior frontend engineer explaining ESLint rules to a developer.
+
+Project: ${currentDesign.projectName}
+Stack: ${opts.react ? 'React' : 'JavaScript'}${opts.ts ? ' + TypeScript' : ''}
+Strictness: ${opts.strictness}
+Rules configured: jsx-max-depth ${opts.rules['react/jsx-max-depth'].severity} (max ${opts.rules['react/jsx-max-depth'].max}), max-depth ${opts.rules['max-depth'].severity} (max ${opts.rules['max-depth'].max}), complexity ${opts.rules['complexity'].severity} (max ${opts.rules['complexity'].max}), no-unused-vars ${opts.rules['no-unused-vars']}, no-console ${opts.rules['no-console']}
+
+Return ONLY this JSON. All values are plain text strings — no code, no backticks:
+{"reasoning":[{"rule":"jsx-max-depth","why":"why max ${opts.rules['react/jsx-max-depth'].max} is right for this project","severity":"${opts.rules['react/jsx-max-depth'].severity}","tag":"react"},{"rule":"max-depth","why":"why depth ${opts.rules['max-depth'].max} suits this stack","severity":"${opts.rules['max-depth'].severity}","tag":"complexity"},{"rule":"complexity","why":"why complexity ${opts.rules['complexity'].max} makes sense here","severity":"${opts.rules['complexity'].severity}","tag":"quality"},{"rule":"no-unused-vars","why":"why this matters for ${currentDesign.projectName}","severity":"${opts.rules['no-unused-vars']}","tag":"quality"},{"rule":"no-console","why":"console policy for this project type","severity":"${opts.rules['no-console']}","tag":"security"}],"agentBrief":{"summary":"2 sentence brief for the Stage 3 agent about what to install and verify","commands":["npm install","npm run lint"],"files":["eslint.config.js","package.json"],"warnings":["one key gotcha for this stack"]}}`;
+
+  try {
+    let result;
+    
+    if (useOllama) {
+      console.log('[Ollama] Using hybrid mode: Ollama reasoning + Mock configs');
+      
+      // Step 1: Generate config files with mock (always reliable)
+      const mockResult = generateMockConfig(opts);
+      console.log('[Mock] Config files generated');
+
+      // Step 2: Ask Ollama only for reasoning + agent brief (safe text-only JSON)
+      try {
+        const response = await callOllama(ollamaPrompt);
+        const parsed = repairJSON(response.content);
+        
+        if (parsed.reasoning && Array.isArray(parsed.reasoning)) {
+          result = {
+            ...mockResult,
+            reasoning: parsed.reasoning,
+            agentBrief: parsed.agentBrief || mockResult.agentBrief,
+            _modelSource: 'ollama'
+          };
+          console.log('[Ollama] ✓ Reasoning enriched with Ollama:', parsed.reasoning.length, 'entries');
+        } else {
+          throw new Error('No reasoning array in response');
+        }
+      } catch (ollamaErr) {
+        console.warn('[Ollama] Reasoning failed, falling back to mock reasoning:', ollamaErr.message);
+        result = { ...mockResult, _modelSource: 'ollama-partial' };
+      }
+    } else {
+      console.log('[Mock] Using mock data generation');
+      await new Promise(resolve => setTimeout(resolve, 1400 + Math.random() * 600));
+      result = generateMockConfig(opts);
+      console.log('[Mock] Generated config with', Object.keys(result).length, 'keys');
+    }
+    
+    renderAll(result, opts);
+    generated = true;
+    updateHandover();
+  } catch(e) {
+    console.error('Generation error:', e);
+    alert('Generation failed: ' + e.message + '\n\nCheck browser console (F12) for details.');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '↺ Regenerate';
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────
+function syntaxHighlightJSON(str) {
+  return str
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"([^"]+)"(\s*:)/g,'<span class="t-key">"$1"</span>$2')
+    .replace(/:\s*"([^"]*)"/g,': <span class="t-str">"$1"</span>')
+    .replace(/:\s*(\d+\.?\d*)/g,': <span class="t-num">$1</span>')
+    .replace(/:\s*(true|false)/g,': <span class="t-bool">$1</span>');
+}
+
+function syntaxHighlightJS(str) {
+  return str
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(\/\/[^\n]*)/g,'<span class="t-comment">$1</span>')
+    .replace(/\b(import|export|from|default|const|let|return|true|false)\b/g,'<span class="t-bool">$1</span>')
+    .replace(/"([^"]*)"/g,'<span class="t-str">"$1"</span>')
+    .replace(/'([^']*)'/g,"<span class=\"t-str\">'$1'</span>")
+    .replace(/\b(error|warn|off)\b/g, m => `<span class="${m==='off'?'t-off':m==='warn'?'t-num':'t-rule'}">${m}</span>`);
+}
+
+function makeCodeFile(filename, desc, content, lang) {
+  const highlighted = lang === 'js' ? syntaxHighlightJS(content) : syntaxHighlightJSON(content);
+  const id = 'cp-' + Math.random().toString(36).slice(2);
+  return `<div class="code-file">
+    <div class="code-file-header">
+      <span class="code-file-name">${filename}</span>
+      <span class="code-file-desc">${desc}</span>
+      <button class="copy-btn" onclick="copyCode('${id}')">copy</button>
+    </div>
+    <div class="code-body" id="${id}">${highlighted}</div>
+  </div>`;
+}
+
+function copyCode(id) {
+  const el = document.getElementById(id);
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).catch(() => {});
+  event.currentTarget.textContent = 'copied!';
+  setTimeout(() => event.currentTarget.textContent = 'copy', 1500);
+}
+
+function renderAll(result, opts) {
+  // Add model source badge
+  let modelBadge;
+  if (result._modelSource === 'ollama') {
+    modelBadge = '<div style="padding:8px 14px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);border-radius:20px;display:inline-flex;align-items:center;gap:8px;font-size:11px;color:var(--c1);margin-bottom:16px;"><span style="font-size:16px;">🤖</span> <strong>Ollama Mistral</strong> <span style="color:var(--muted);font-size:10px;">(AI reasoning + config files)</span></div>';
+  } else if (result._modelSource === 'ollama-partial') {
+    modelBadge = '<div style="padding:8px 14px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);border-radius:20px;display:inline-flex;align-items:center;gap:8px;font-size:11px;color:var(--c1);margin-bottom:16px;"><span style="font-size:16px;">🤖</span> <strong>Ollama Mistral</strong> <span style="color:var(--muted);font-size:10px;">(config files generated)</span></div>';
+  } else {
+    modelBadge = '<div style="padding:8px 14px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);border-radius:20px;display:inline-flex;align-items:center;gap:8px;font-size:11px;color:var(--c2);margin-bottom:16px;"><span style="font-size:16px;">📋</span> <strong>Mock Data</strong></div>';
+  }
+  
+  // ESLint
+  const eslintEl = document.getElementById('eslint-content');
+  eslintEl.innerHTML = modelBadge + makeCodeFile('eslint.config.js', 'Flat config — ESLint 9+', result.eslintConfig || '// No content', 'js');
+  document.getElementById('ph-eslint').style.display = 'none';
+  eslintEl.style.display = 'block';
+
+  // Reasoning
+  const pkgEl = document.getElementById('package-content');
+  const reasons = (result.reasoning || []);
+  pkgEl.innerHTML = modelBadge + `
+    <div class="status-row"><span class="status-text">LLM reasoned about ${reasons.length} rules in context of your ${currentDesign.projectName}</span></div>
+    ${reasons.map(r => `
+    <div class="reasoning-card">
+      <div class="rc-header">
+        <span class="rc-icon">${r.severity==='error'?'🔴':r.severity==='warn'?'🟡':'⚫'}</span>
+        <span class="rc-title">${r.rule}</span>
+        <span style="margin-left:auto;font-size:10px;color:${r.severity==='error'?'#f87171':r.severity==='warn'?'#fb923c':'var(--muted)'};">${r.severity||''}</span>
+      </div>
+      <div class="rc-body"><span class="why">Why:</span> ${r.why}</div>
+      <div class="rc-tags"><span class="rc-tag">${r.tag||'general'}</span></div>
+    </div>`).join('')}`;
+  document.getElementById('ph-package').style.display = 'none';
+  pkgEl.style.display = 'block';
+
+  // package.json
+  const pkgjsonEl = document.getElementById('pkgjson-content');
+  pkgjsonEl.innerHTML = makeCodeFile('package.json', 'Dependencies + scripts', result.pkgJson || '{}', 'json');
+  document.getElementById('ph-pkgjson').style.display = 'none';
+  pkgjsonEl.style.display = 'block';
+
+  // Stylelint
+  const stylelintEl = document.getElementById('stylelint-content');
+  if (opts.stylelint && result.stylelintrc) {
+    stylelintEl.innerHTML = makeCodeFile('.stylelintrc', 'CSS nesting + quality rules', result.stylelintrc, 'json');
+    document.getElementById('ph-stylelint').style.display = 'none';
+    stylelintEl.style.display = 'block';
+  } else {
+    document.getElementById('ph-stylelint').querySelector('.out-placeholder-text').textContent = 'Stylelint is disabled. Enable it in the Nesting Depth section to generate this file.';
+  }
+
+  // prettier
+  const prettierEl = document.getElementById('prettier-content');
+  if (opts.prettier && result.prettierrc) {
+    prettierEl.innerHTML = makeCodeFile('.prettierrc', 'Code formatting config', result.prettierrc, 'json');
+    document.getElementById('ph-prettier').style.display = 'none';
+    prettierEl.style.display = 'block';
+  } else {
+    document.getElementById('ph-prettier').querySelector('.out-placeholder-text').textContent = 'Prettier is disabled. Enable it in the sidebar to generate this file.';
+  }
+
+  // Agent Handover
+  const brief = result.agentBrief || {};
+  const handoverEl = document.getElementById('handover-content');
+  handoverEl.innerHTML = `
+    <div class="status-row"><span class="status-text">✓ Handover brief ready — Stage 3 agent receives this as its instruction set</span></div>
+    <div class="reasoning-card" style="border-left-color:var(--c3);">
+      <div class="rc-header"><span class="rc-icon">📋</span><span class="rc-title" style="color:var(--c3);">Mission Summary</span></div>
+      <div class="rc-body">${brief.summary || ''}</div>
+    </div>
+    ${(brief.commands||[]).length ? `
+    <div class="code-file">
+      <div class="code-file-header"><span class="code-file-name">Commands for Agent</span><span class="code-file-desc">Run in order</span></div>
+      <div class="code-body">${(brief.commands||[]).map((c,i)=>`<span class="t-comment">// Step ${i+1}</span>\n<span class="t-str">$ ${c}</span>`).join('\n')}</div>
+    </div>` : ''}
+    ${(brief.files||[]).length ? `
+    <div class="reasoning-card">
+      <div class="rc-header"><span class="rc-icon">📁</span><span class="rc-title">Files to Place at Root</span></div>
+      <div class="rc-body">${(brief.files||[]).map(f=>`<div style="margin-bottom:4px;"><span class="t-str">${f}</span></div>`).join('')}</div>
+    </div>` : ''}
+    ${(brief.warnings||[]).length ? `
+    <div class="reasoning-card" style="border-left-color:#fb923c;background:rgba(251,146,60,0.04);">
+      <div class="rc-header"><span class="rc-icon">⚠</span><span class="rc-title" style="color:#fb923c;">Agent Warnings</span></div>
+      <div class="rc-body">${(brief.warnings||[]).map(w=>`<div style="margin-bottom:6px;color:#cc8855;">• ${w}</div>`).join('')}</div>
+    </div>` : ''}`;
+  document.getElementById('ph-handover').style.display = 'none';
+  handoverEl.style.display = 'block';
+}
+
+function updateHandover() {
+  document.getElementById('handover-banner').classList.add('visible');
+  ['eslint','pkg','prettier','stylelint','brief'].forEach(id => {
+    const el = document.getElementById('hc-' + id);
+    if (el) el.classList.add('done');
+  });
+}
+
+// ── MODEL SELECTION ─────────────────────────────────────────────────
+function setModel(ollama) {
+  useOllama = ollama;
+  console.log(`[Model] Switched to ${ollama ? 'Ollama + Mistral' : 'Mock Data'}`);
+}
+</script>
+</body>
+</html>

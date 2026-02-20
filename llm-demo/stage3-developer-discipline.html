@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 3 — Developer Discipline Guide</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+
+:root {
+  --bg: #06060f;
+  --surface: #0a0a18;
+  --card: #0e0e1c;
+  --card2: #121224;
+  --border: #16162a;
+  --border2: #20203a;
+  --c1: #38bdf8;   /* sky blue — code */
+  --c2: #34d399;   /* green — do */
+  --c3: #f87171;   /* red — don't */
+  --c4: #fbbf24;   /* amber — environment */
+  --c5: #a78bfa;   /* purple — diagnosis */
+  --c1-dim: rgba(56,189,248,0.07);
+  --c2-dim: rgba(52,211,153,0.07);
+  --c3-dim: rgba(248,113,113,0.07);
+  --c4-dim: rgba(251,191,36,0.07);
+  --c5-dim: rgba(167,139,250,0.07);
+  --text: #dde2f5;
+  --muted: #48487a;
+  --muted2: #7878aa;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'DM Serif Display', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 12px; min-height: 100vh; }
+
+/* ── PIPELINE ── */
+.pipeline {
+  display: flex; align-items: center; padding: 0 40px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  overflow-x: auto; gap: 0;
+}
+.ps { display: flex; align-items: center; gap: 9px; padding: 13px 18px 13px 0; flex-shrink: 0; }
+.ps-arrow { color: var(--border2); font-size: 16px; margin: 0 2px; }
+.ps-num { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+.done .ps-num  { background: rgba(52,211,153,0.12); color: var(--c2); border: 1px solid rgba(52,211,153,0.2); }
+.now  .ps-num  { background: rgba(56,189,248,0.15); color: var(--c1); border: 1px solid rgba(56,189,248,0.3); box-shadow: 0 0 12px rgba(56,189,248,0.15); }
+.next .ps-num  { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+.ps-info { display: flex; flex-direction: column; gap: 1px; }
+.ps-tag { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
+.done .ps-tag { color: var(--c2); } .now .ps-tag { color: var(--c1); } .next .ps-tag { color: var(--muted); }
+.ps-name { font-size: 11px; font-weight: 600; }
+.done .ps-name { color: #5577aa; } .now .ps-name { color: var(--text); } .next .ps-name { color: var(--muted); }
+
+/* ── HEADER ── */
+header {
+  padding: 40px 40px 32px; border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+  background: linear-gradient(180deg, #08082a 0%, var(--bg) 100%);
+}
+header::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c1), transparent); opacity: 0.4;
+}
+.eyebrow { font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: var(--c1); opacity: 0.7; margin-bottom: 12px; }
+h1 { font-family: var(--serif); font-size: clamp(26px, 3.5vw, 44px); font-weight: 400; line-height: 1.15; color: #f0f2ff; }
+h1 em { color: var(--c1); font-style: italic; }
+.subtitle { margin-top: 12px; font-size: 11px; color: var(--muted2); line-height: 1.75; max-width: 640px; }
+
+.section-pills { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+.section-pill {
+  padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; cursor: pointer; transition: all 0.2s; border: 1px solid;
+}
+.pill-cycles { border-color: rgba(56,189,248,0.3); color: var(--c1); background: var(--c1-dim); }
+.pill-env    { border-color: rgba(251,191,36,0.3); color: var(--c4); background: var(--c4-dim); }
+.pill-dos    { border-color: rgba(52,211,153,0.3); color: var(--c2); background: var(--c2-dim); }
+.pill-donts  { border-color: rgba(248,113,113,0.3); color: var(--c3); background: var(--c3-dim); }
+.section-pill:hover { transform: translateY(-1px); }
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 40px; overflow-x: auto; gap: 0;
+}
+.nav-tab {
+  padding: 16px 24px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { border-bottom-color: var(--c1); color: var(--text); }
+.nav-tab .n-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── MAIN CONTENT ── */
+.content { max-width: 1080px; padding: 40px; }
+.section-panel { display: none; }
+.section-panel.active { display: block; animation: fi 0.25s ease; }
+@keyframes fi { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── SECTION TITLE ── */
+.sec-title {
+  font-family: var(--serif); font-size: 28px; font-weight: 400; margin-bottom: 8px;
+}
+.sec-subtitle { font-size: 11px; color: var(--muted2); line-height: 1.7; margin-bottom: 32px; max-width: 620px; }
+
+/* ── ITERATION CYCLES ── */
+.cycle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+@media (max-width: 720px) { .cycle-grid { grid-template-columns: 1fr; } }
+
+.rule-card {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 10px; overflow: hidden;
+}
+.rule-card-hdr {
+  padding: 14px 18px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.rule-num {
+  width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;
+  background: rgba(56,189,248,0.12); color: var(--c1); border: 1px solid rgba(56,189,248,0.2);
+}
+.rule-title { font-size: 12px; font-weight: 700; color: var(--text); }
+.rule-body { padding: 16px 18px; }
+.rule-desc { font-size: 11px; color: var(--muted2); line-height: 1.7; margin-bottom: 12px; }
+
+.example-block {
+  border-radius: 6px; overflow: hidden; margin-top: 10px;
+}
+.ex-hdr {
+  padding: 6px 12px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px;
+}
+.ex-bad  { background: rgba(248,113,113,0.08); color: var(--c3); }
+.ex-good { background: rgba(52,211,153,0.08);  color: var(--c2); }
+.ex-body {
+  padding: 10px 12px; font-size: 11px; line-height: 1.65;
+  background: var(--card2); color: var(--muted2);
+}
+.ex-body strong { color: var(--text); }
+.ex-body .hi { color: var(--c1); }
+.ex-body .warn { color: var(--c4); }
+.ex-body .good { color: var(--c2); }
+.ex-body .bad  { color: var(--c3); }
+
+/* prompt template */
+.prompt-template {
+  background: var(--card2); border: 1px solid var(--border2); border-left: 3px solid var(--c1);
+  border-radius: 6px; padding: 14px 16px; margin-top: 12px;
+}
+.pt-label { font-size: 9px; letter-spacing: 2px; color: var(--c1); margin-bottom: 8px; text-transform: uppercase; }
+.pt-body { font-size: 11px; color: #7799cc; line-height: 1.75; }
+.pt-body .slot { color: var(--c4); font-style: italic; }
+.pt-body .fixed { color: var(--c2); }
+
+/* ── ENVIRONMENT DIAGNOSIS ── */
+.diag-flow {
+  display: flex; flex-direction: column; gap: 0; margin-bottom: 28px;
+  border: 1px solid var(--border2); border-radius: 10px; overflow: hidden;
+}
+.diag-step {
+  display: grid; grid-template-columns: 40px 1fr 1fr; gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+.diag-step:last-child { border-bottom: none; }
+.diag-num {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card2); border-right: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--muted); padding: 14px 0;
+}
+.diag-question {
+  padding: 14px 16px; border-right: 1px solid var(--border); background: var(--card);
+  font-size: 11px; color: var(--text); line-height: 1.6;
+}
+.diag-question .q { font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 1px; }
+.diag-action {
+  padding: 14px 16px; background: var(--card);
+  font-size: 11px; line-height: 1.6;
+}
+.diag-action .a { font-size: 10px; margin-bottom: 4px; letter-spacing: 1px; }
+.code-env { color: var(--c4); } .code-code { color: var(--c1); }
+.diag-action .a.env { color: var(--c4); } .diag-action .a.code { color: var(--c1); }
+
+.env-vs-code {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px;
+}
+@media (max-width: 700px) { .env-vs-code { grid-template-columns: 1fr; } }
+
+.vs-col { border-radius: 10px; border: 1px solid; overflow: hidden; }
+.vs-col.env-col { border-color: rgba(251,191,36,0.25); }
+.vs-col.code-col { border-color: rgba(56,189,248,0.25); }
+.vs-hdr { padding: 14px 18px; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.env-col .vs-hdr { background: rgba(251,191,36,0.07); color: var(--c4); }
+.code-col .vs-hdr { background: rgba(56,189,248,0.07); color: var(--c1); }
+.vs-list { padding: 0; }
+.vs-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px;
+  border-top: 1px solid var(--border); font-size: 11px; color: var(--muted2); line-height: 1.5;
+}
+.vs-icon { flex-shrink: 0; padding-top: 1px; }
+.env-col .vs-icon { color: var(--c4); }
+.code-col .vs-icon { color: var(--c1); }
+
+.checklist-card {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 10px;
+  padding: 20px; margin-bottom: 16px;
+}
+.cl-title { font-size: 11px; font-weight: 700; color: var(--c4); margin-bottom: 14px; letter-spacing: 1px; }
+.cl-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted2);
+  line-height: 1.6; cursor: pointer; transition: color 0.2s;
+}
+.cl-item:last-child { border-bottom: none; }
+.cl-item:hover { color: var(--text); }
+.cl-check {
+  width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--border2);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; transition: all 0.2s; margin-top: 1px;
+}
+.cl-item.checked .cl-check { background: var(--c2); border-color: var(--c2); color: #000; }
+.cl-item.checked { color: var(--muted); text-decoration: line-through; }
+
+/* ── DOS AND DON'TS ── */
+.dos-donts-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px;
+}
+@media (max-width: 720px) { .dos-donts-grid { grid-template-columns: 1fr; } }
+
+.do-card { background: var(--card); border: 1px solid var(--border2); border-radius: 10px; overflow: hidden; }
+.do-hdr { padding: 14px 18px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.do-hdr.good { background: var(--c2-dim); color: var(--c2); border-bottom: 1px solid rgba(52,211,153,0.15); }
+.do-hdr.bad  { background: var(--c3-dim); color: var(--c3); border-bottom: 1px solid rgba(248,113,113,0.15); }
+.do-item {
+  display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px;
+  border-bottom: 1px solid var(--border); font-size: 11px; line-height: 1.65;
+}
+.do-item:last-child { border-bottom: none; }
+.do-icon { font-size: 14px; flex-shrink: 0; padding-top: 1px; }
+.do-text { color: var(--muted2); flex: 1; }
+.do-text strong { color: var(--text); display: block; margin-bottom: 3px; font-size: 11px; }
+.do-text .rationale { font-size: 10px; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+/* ── PROMPT BUILDER ── */
+.prompt-builder {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 10px;
+  overflow: hidden; margin-bottom: 28px;
+}
+.pb-hdr {
+  padding: 16px 20px; background: var(--card2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.pb-title { font-size: 11px; font-weight: 700; color: var(--c1); }
+.pb-desc { font-size: 10px; color: var(--muted); margin-left: auto; }
+.pb-body { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .pb-body { grid-template-columns: 1fr; } }
+
+.pb-field { display: flex; flex-direction: column; gap: 6px; }
+.pb-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.pb-select, .pb-input {
+  background: var(--card2); border: 1px solid var(--border2); color: var(--text);
+  font-family: var(--mono); font-size: 11px; border-radius: 6px; padding: 8px 10px;
+  outline: none; transition: border-color 0.2s; width: 100%;
+}
+.pb-select:focus, .pb-input:focus { border-color: var(--c1); }
+.pb-select option { background: var(--card2); }
+
+.pb-output {
+  grid-column: 1 / -1;
+  background: var(--surface); border: 1px solid var(--border2); border-left: 3px solid var(--c1);
+  border-radius: 6px; padding: 16px; font-size: 11px; color: #7799cc; line-height: 1.8;
+  min-height: 100px; position: relative;
+}
+.pb-output .slot { color: var(--c4); }
+.pb-output .kw { color: var(--c1); }
+.pb-output .val { color: var(--c2); }
+.copy-prompt-btn {
+  position: absolute; top: 10px; right: 10px; padding: 4px 12px;
+  background: transparent; border: 1px solid var(--border2); color: var(--muted);
+  font-family: var(--mono); font-size: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+}
+.copy-prompt-btn:hover { border-color: var(--c1); color: var(--c1); }
+
+/* ── QUICK REF ── */
+.quick-ref {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 10px;
+  overflow: hidden;
+}
+.qr-hdr {
+  padding: 14px 20px; background: var(--card2); border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--text);
+}
+.qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.qr-cell {
+  padding: 14px 16px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.qr-cell:last-child { border-right: none; }
+.qr-situation { font-size: 10px; color: var(--muted); margin-bottom: 6px; letter-spacing: 1px; }
+.qr-action { font-size: 11px; color: var(--text); line-height: 1.5; }
+.qr-mode {
+  display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;
+}
+.mode-llm   { background: rgba(52,211,153,0.1);  color: var(--c2); }
+.mode-agent { background: rgba(167,139,250,0.1); color: var(--c5); }
+.mode-dev   { background: rgba(56,189,248,0.1);  color: var(--c1); }
+.mode-stop  { background: rgba(248,113,113,0.1); color: var(--c3); }
+</style>
+</head>
+<body>
+
+<!-- PIPELINE -->
+<div class="pipeline">
+  <div class="ps done"><div class="ps-num">✓</div><div class="ps-info"><div class="ps-tag">Stage 1</div><div class="ps-name">Design (LLM)</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps done"><div class="ps-num">✓</div><div class="ps-info"><div class="ps-tag">Stage 2</div><div class="ps-name">Rules (LLM)</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps done"><div class="ps-num">✓</div><div class="ps-info"><div class="ps-tag">Stage 2.5</div><div class="ps-name">Blueprint (LLM)</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps now"><div class="ps-num">3</div><div class="ps-info"><div class="ps-tag">Stage 3 — Now</div><div class="ps-name">Developer Discipline</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps next"><div class="ps-num">4</div><div class="ps-info"><div class="ps-tag">Stage 4</div><div class="ps-name">Testing (Agent)</div></div></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="eyebrow">Stage 3 // Developer Discipline</div>
+  <h1>Working with Agents:<br><em>The Rules That Save Hours</em></h1>
+  <p class="subtitle">You have a solid design, lint config, and blueprint. Now the work starts — and how you communicate with the agent determines whether you iterate once or ten times. These are the disciplines that separate 1-cycle fixes from 10-cycle rabbit holes.</p>
+  <div class="section-pills">
+    <div class="section-pill pill-cycles" onclick="switchSection('cycles')">① Reducing Iteration Cycles</div>
+    <div class="section-pill pill-env" onclick="switchSection('env')">② Code vs Environment</div>
+    <div class="section-pill pill-dos" onclick="switchSection('dos')">③ Dos & Don'ts</div>
+    <div class="section-pill pill-donts" onclick="switchSection('prompt')">④ Prompt Builder</div>
+  </div>
+</header>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchSection('cycles')">
+    <span class="n-dot" style="background:var(--c1);box-shadow:0 0 6px var(--c1)"></span>
+    Reducing Cycles
+  </div>
+  <div class="nav-tab" onclick="switchSection('env')">
+    <span class="n-dot" style="background:var(--c4);box-shadow:0 0 6px var(--c4)"></span>
+    Code vs Environment
+  </div>
+  <div class="nav-tab" onclick="switchSection('dos')">
+    <span class="n-dot" style="background:var(--c2);box-shadow:0 0 6px var(--c2)"></span>
+    Dos &amp; Don'ts
+  </div>
+  <div class="nav-tab" onclick="switchSection('prompt')">
+    <span class="n-dot" style="background:var(--c5);box-shadow:0 0 6px var(--c5)"></span>
+    Prompt Builder
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ═══════════════ SECTION 1: ITERATION CYCLES ═══════════════ -->
+  <div class="section-panel active" id="section-cycles">
+    <div class="sec-title" style="color:var(--c1)">Reducing Iteration Cycles</div>
+    <p class="sec-subtitle">Every extra cycle with an agent costs context, time, and sometimes introduces new bugs while fixing old ones. These rules cut cycles at the source.</p>
+
+    <div class="cycle-grid">
+
+      <div class="rule-card">
+        <div class="rule-card-hdr">
+          <span class="rule-num">1</span>
+          <span class="rule-title">One problem per prompt</span>
+        </div>
+        <div class="rule-body">
+          <div class="rule-desc">Agents given multiple issues in one prompt will fix some, partially fix others, and silently skip the rest. You then can't tell what changed or why.</div>
+          <div class="example-block">
+            <div class="ex-hdr ex-bad">✗ Multiple issues — guaranteed partial fix</div>
+            <div class="ex-body">"Fix the login bug, also the payment form isn't submitting, and can you rename the auth hook too"</div>
+          </div>
+          <div class="example-block">
+            <div class="ex-hdr ex-good">✓ One issue — complete fix</div>
+            <div class="ex-body"><span class="good">"Only task: fix the login redirect after Supabase auth. It should go to /dashboard but goes to /. File: src/components/Auth/LoginForm.tsx"</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-hdr">
+          <span class="rule-num">2</span>
+          <span class="rule-title">Name the exact file and line</span>
+        </div>
+        <div class="rule-body">
+          <div class="rule-desc">Agents search for context when you don't give it. They may find the wrong file, the wrong function, or infer incorrectly. Your blueprint makes this easy — you know every filename.</div>
+          <div class="example-block">
+            <div class="ex-hdr ex-bad">✗ Forces agent to guess location</div>
+            <div class="ex-body">"The subscription check isn't working"</div>
+          </div>
+          <div class="example-block">
+            <div class="ex-hdr ex-good">✓ Zero ambiguity</div>
+            <div class="ex-body"><span class="good">"In <span class="hi">src/hooks/useSubscription.ts</span>, the <span class="hi">isActive()</span> check returns true even for expired plans. Expected: false when subscription.endDate &lt; today"</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-hdr">
+          <span class="rule-num">3</span>
+          <span class="rule-title">State expected vs actual</span>
+        </div>
+        <div class="rule-body">
+          <div class="rule-desc">The single biggest source of extra cycles is the agent not knowing what "correct" looks like. Always give both sides — what you got and what you expected.</div>
+          <div class="example-block">
+            <div class="ex-hdr ex-bad">✗ Agent guesses what "working" means</div>
+            <div class="ex-body">"The Razorpay modal isn't working correctly"</div>
+          </div>
+          <div class="example-block">
+            <div class="ex-hdr ex-good">✓ Agent knows exactly what to achieve</div>
+            <div class="ex-body"><span class="good">"Expected: Razorpay modal opens on button click.<br>Actual: <span class="warn">Uncaught TypeError: window.Razorpay is not a constructor</span><br>File: src/components/Subscription/PaymentForm.tsx, line 34"</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-hdr">
+          <span class="rule-num">4</span>
+          <span class="rule-title">Paste the actual error — all of it</span>
+        </div>
+        <div class="rule-body">
+          <div class="rule-desc">Paraphrasing errors loses the exact message, stack trace, and error code the agent needs. Copy the full console output including the stack trace — the bottom lines are often more useful than the top.</div>
+          <div class="example-block">
+            <div class="ex-hdr ex-bad">✗ Paraphrased — agent works blind</div>
+            <div class="ex-body">"Getting a 401 error when calling the API"</div>
+          </div>
+          <div class="example-block">
+            <div class="ex-hdr ex-good">✓ Full error — agent diagnoses precisely</div>
+            <div class="ex-body"><span class="warn">POST https://xyz.supabase.co/rest/v1/subscriptions 401<br>{"code":"PGRST301","message":"JWT expired","hint":"Refresh session"}</span><br><span class="good">→ Agent immediately knows: session refresh issue, not a query bug</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-hdr">
+          <span class="rule-num">5</span>
+          <span class="rule-title">Confirm before proceeding</span>
+        </div>
+        <div class="rule-body">
+          <div class="rule-desc">After each agent fix, verify it works before giving the next task. Stacking unverified fixes means when something breaks you don't know which fix caused it — and the agent starts guessing.</div>
+          <div class="example-block">
+            <div class="ex-hdr ex-bad">✗ Stacked tasks — debug nightmare</div>
+            <div class="ex-body">"Also fix X, Y, and Z while you're at it" → three fixes applied → one breaks something → you don't know which</div>
+          </div>
+          <div class="example-block">
+            <div class="ex-hdr ex-good">✓ Verify, then proceed</div>
+            <div class="ex-body"><span class="good">Fix 1 → test → ✓ confirmed → Fix 2 → test → ✓ confirmed<br>Clean git commit per fix. Bisect is trivial if anything regresses.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-hdr">
+          <span class="rule-num">6</span>
+          <span class="rule-title">Give the agent scope boundaries</span>
+        </div>
+        <div class="rule-body">
+          <div class="rule-desc">Without scope constraints, agents refactor things you didn't ask about, rename variables "for clarity," or restructure files. Explicitly say what is off-limits.</div>
+          <div class="example-block">
+            <div class="ex-hdr ex-bad">✗ No scope — agent rewrites half the file</div>
+            <div class="ex-body">"Fix the validation in the payment form"</div>
+          </div>
+          <div class="example-block">
+            <div class="ex-hdr ex-good">✓ Scoped — agent touches only what's needed</div>
+            <div class="ex-body"><span class="good">"Fix only the card number validation in <span class="hi">PaymentForm.tsx</span>. Do not change any other validation, do not rename anything, do not refactor the component structure."</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════ SECTION 2: CODE VS ENVIRONMENT ═══════════════ -->
+  <div class="section-panel" id="section-env">
+    <div class="sec-title" style="color:var(--c4)">Code vs Environment</div>
+    <p class="sec-subtitle">The most expensive mistake in AI-assisted development: reporting an environment issue as a code bug. The agent iterates on code that was never the problem. Learn to diagnose first, then report.</p>
+
+    <div class="env-vs-code" style="margin-bottom:28px;">
+      <div class="vs-col env-col">
+        <div class="vs-hdr">🌍 Environment Issues</div>
+        <div class="vs-list">
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Works in Chrome, fails in Safari — <strong>WebKit CSS/API difference</strong></span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Works locally, fails in production — <strong>env vars, CORS, SSL, CDN headers</strong></span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Works on your machine, fails for colleague — <strong>Node version, OS, local config</strong></span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Works with fast internet, fails on 3G — <strong>timeout, race condition, load order</strong></span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Works logged in, fails in incognito — <strong>cookies, storage, session state</strong></span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Razorpay loads in dev, not staging — <strong>CSP, domain whitelist, test vs live keys</strong></span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Supabase query works in dashboard, fails in app — <strong>RLS policy, JWT claims, anon vs auth role</strong></span></div>
+        </div>
+      </div>
+      <div class="vs-col code-col">
+        <div class="vs-hdr">💻 Code Issues</div>
+        <div class="vs-list">
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Fails in ALL browsers the same way</span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Reproducible every time with same steps</span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Error points to a specific file + line number</span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>TypeScript/ESLint flags it at build time</span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Fails for all users equally</span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Unit test catches it in isolation</span></div>
+          <div class="vs-item"><span class="vs-icon">◆</span><span>Same behaviour regardless of network/device</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--c4);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">Diagnosis Flow — Run This Before Reporting Anything</div>
+
+    <div class="diag-flow">
+      <div class="diag-step" style="background:var(--card2);">
+        <div class="diag-num" style="color:var(--c4);font-size:9px;letter-spacing:1px;">Q</div>
+        <div class="diag-question" style="color:var(--muted2);font-size:10px;letter-spacing:1px;">QUESTION TO ASK</div>
+        <div class="diag-action" style="color:var(--muted2);font-size:10px;letter-spacing:1px;">IF YES → / IF NO →</div>
+      </div>
+      <div class="diag-step">
+        <div class="diag-num">1</div>
+        <div class="diag-question">
+          <div class="q">REPRODUCE</div>
+          Does it happen every time with the same steps?
+        </div>
+        <div class="diag-action">
+          <div class="a code">YES → likely code issue, proceed</div>
+          <div class="a env">NO → likely race condition, timing, or network. Check loading states + async handling</div>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="diag-num">2</div>
+        <div class="diag-question">
+          <div class="q">CROSS-BROWSER</div>
+          Does it happen in Chrome AND Firefox AND Safari?
+        </div>
+        <div class="diag-action">
+          <div class="a code">ALL fail → code issue. Report to agent with full error</div>
+          <div class="a env">ONE browser → environment/compatibility issue. Tell agent: "Safari only — CSS/API compat issue, not logic bug"</div>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="diag-num">3</div>
+        <div class="diag-question">
+          <div class="q">LOCAL VS PROD</div>
+          Does it work locally but fail in production/staging?
+        </div>
+        <div class="diag-action">
+          <div class="a env">Check: env vars set? CORS configured? Supabase URL correct? Razorpay domain whitelisted? Don't ask agent to change code yet</div>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="diag-num">4</div>
+        <div class="diag-question">
+          <div class="q">AUTH STATE</div>
+          Does it work logged out / in incognito but fail when logged in?
+        </div>
+        <div class="diag-action">
+          <div class="a env">Supabase RLS issue or JWT problem — check Supabase logs first, not your code</div>
+          <div class="a code">Fails both ways → auth-unrelated code bug</div>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="diag-num">5</div>
+        <div class="diag-question">
+          <div class="q">ISOLATE</div>
+          Can you reproduce with a minimal test? (comment out code, hardcode values)
+        </div>
+        <div class="diag-action">
+          <div class="a code">YES → you've found the exact cause. Report that specific thing</div>
+          <div class="a env">Disappears when isolated → dependency, ordering, or context issue — report the interaction, not the symptom</div>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="diag-num">6</div>
+        <div class="diag-question">
+          <div class="q">NETWORK TAB</div>
+          Check DevTools Network — what does the actual request/response look like?
+        </div>
+        <div class="diag-action">
+          <div class="a env">4xx response → server/config issue (check Supabase logs, API keys)</div>
+          <div class="a code">Request never sent → code didn't reach the call. That's the bug location</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="checklist-card">
+      <div class="cl-title">📋 Safari / Cross-Browser Issue Checklist — Complete Before Asking Agent</div>
+      <div class="cl-item" onclick="toggleCheck(this)"><span class="cl-check"></span><span>Confirm: fails in Safari, works in Chrome. It's a compatibility issue, not a code bug</span></div>
+      <div class="cl-item" onclick="toggleCheck(this)"><span class="cl-check"></span><span>Check: does the feature use <code>Date.parse()</code>? Safari parses dates differently — use ISO 8601 format only</span></div>
+      <div class="cl-item" onclick="toggleCheck(this)"><span class="cl-check"></span><span>Check: any CSS <code>gap</code> in flexbox? Safari &lt;14 doesn't support it. Use <code>margin</code> fallback</span></div>
+      <div class="cl-item" onclick="toggleCheck(this)"><span class="cl-check"></span><span>Check: any <code>position: sticky</code>? Safari requires <code>-webkit-sticky</code> prefix</span></div>
+      <div class="cl-item" onclick="toggleCheck(this)"><span class="cl-check"></span><span>Check: Razorpay script loading — Safari blocks third-party scripts differently. Check CSP headers</span></div>
+      <div class="cl-item" onclick="toggleCheck(this)"><span class="cl-check"></span><span>Check: any Clipboard API, Web Crypto, or IntersectionObserver? Check MDN Safari compat before asking agent to "fix the code"</span></div>
+      <div class="cl-item" onclick="toggleCheck(this)"><span class="cl-check"></span><span>Then report to agent: "Safari-only issue. Likely [specific cause]. Change only the compatibility fix, not the logic"</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SECTION 3: DOS AND DON'TS ═══════════════ -->
+  <div class="section-panel" id="section-dos">
+    <div class="sec-title" style="color:var(--c2)">Dos &amp; Don'ts</div>
+    <p class="sec-subtitle">With a solid design and blueprint already in place, these are the disciplines that keep the project on track through implementation.</p>
+
+    <div class="dos-donts-grid">
+
+      <div class="do-card">
+        <div class="do-hdr good">✓ Do</div>
+        <div class="do-item">
+          <span class="do-icon">✓</span>
+          <div class="do-text">
+            <strong>Commit after every working feature</strong>
+            Small, frequent commits. If an agent fix breaks something, you can revert to exactly before the bad change. Never let more than one agent session go uncommitted.
+            <div class="rationale">→ Prevents the "I don't know what changed" spiral</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon">✓</span>
+          <div class="do-text">
+            <strong>Reference your blueprint filenames always</strong>
+            Your Stage 2.5 blueprint has exact paths. Use them verbatim. "src/hooks/useAuth.ts" not "the auth hook file."
+            <div class="rationale">→ Eliminates file location ambiguity in long sessions</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon">✓</span>
+          <div class="do-text">
+            <strong>Use LLM for decisions, agent for execution</strong>
+            If you're unsure HOW to implement something, ask the LLM first. Get a plan. Then hand it to the agent to execute. Don't ask the agent to design while building.
+            <div class="rationale">→ Agents make permanent choices; LLMs explore options</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon">✓</span>
+          <div class="do-text">
+            <strong>Run lint before and after every agent session</strong>
+            <code>npm run lint</code> catches regressions the agent introduced silently. ESLint and your nesting rules will flag things faster than manual review.
+            <div class="rationale">→ Your Stage 2 config pays off here</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon">✓</span>
+          <div class="do-text">
+            <strong>Tell the agent which module you're in</strong>
+            "We are working in the Payment Module. Only touch files under src/components/Subscription/ and src/hooks/usePayment.ts."
+            <div class="rationale">→ Your module boundaries from Stage 2.5 are guardrails</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon">✓</span>
+          <div class="do-text">
+            <strong>Check Supabase logs before code logs</strong>
+            When a Supabase query fails, open the Supabase dashboard logs first. The error is usually there — JWT, RLS, or malformed query — before blaming your code.
+            <div class="rationale">→ Saves 2-3 agent cycles on every DB issue</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="do-card">
+        <div class="do-hdr bad">✗ Don't</div>
+        <div class="do-item">
+          <span class="do-icon" style="color:var(--c3)">✗</span>
+          <div class="do-text">
+            <strong>Don't paste raw browser error messages alone</strong>
+            "TypeError: Cannot read properties of undefined" means nothing without the file, line, and what you were doing. Always add context before the error.
+            <div class="rationale">→ Raw errors alone cause agents to guess — and guess wrong</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon" style="color:var(--c3)">✗</span>
+          <div class="do-text">
+            <strong>Don't let the agent change your folder structure</strong>
+            Your Stage 2.5 blueprint is intentional. If the agent suggests moving files or renaming folders, ask it to work within the existing structure instead.
+            <div class="rationale">→ Blueprint drift breaks RAG, imports, and team alignment</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon" style="color:var(--c3)">✗</span>
+          <div class="do-text">
+            <strong>Don't ignore TypeScript errors "for now"</strong>
+            Suppressing TS errors with <code>// @ts-ignore</code> hides real problems. Razorpay and Supabase types exist precisely to catch mistakes at compile time, not runtime.
+            <div class="rationale">→ Payment bugs with type suppressions are production bugs</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon" style="color:var(--c3)">✗</span>
+          <div class="do-text">
+            <strong>Don't ask "why isn't this working" without diagnosis</strong>
+            Run the diagnosis flow first (Code vs Environment section). Report what you found, not just the symptom. Agents given symptoms iterate; agents given causes fix.
+            <div class="rationale">→ Symptoms generate hypotheses; causes generate solutions</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon" style="color:var(--c3)">✗</span>
+          <div class="do-text">
+            <strong>Don't accumulate unreviewed agent output</strong>
+            Read every file the agent creates or modifies. Agents introduce subtle bugs — a hardcoded value, a missing error boundary, an auth check that's always true. You own the code.
+            <div class="rationale">→ Agent output is a first draft, not a final answer</div>
+          </div>
+        </div>
+        <div class="do-item">
+          <span class="do-icon" style="color:var(--c3)">✗</span>
+          <div class="do-text">
+            <strong>Don't start a new feature on a broken state</strong>
+            If there's a known bug or lint error, fix it first. Building on broken ground means the agent's new work inherits the brokenness — and the root cause gets harder to find.
+            <div class="rationale">→ Technical debt compounds fast in agent-assisted code</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK REFERENCE -->
+    <div class="quick-ref">
+      <div class="qr-hdr">Quick Reference — What Mode to Use When</div>
+      <div class="qr-grid">
+        <div class="qr-cell">
+          <div class="qr-situation">Unclear how to implement</div>
+          <div class="qr-action">Ask LLM for approach options first</div>
+          <span class="qr-mode mode-llm">LLM</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">Clear task, known files</div>
+          <div class="qr-action">Hand directly to agent with scoped prompt</div>
+          <span class="qr-mode mode-agent">Agent</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">Bug in specific file/line</div>
+          <div class="qr-action">Agent with exact file + expected vs actual</div>
+          <span class="qr-mode mode-agent">Agent</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">Safari / cross-browser</div>
+          <div class="qr-action">Run checklist first, then LLM for compat fix</div>
+          <span class="qr-mode mode-llm">LLM</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">Supabase 4xx error</div>
+          <div class="qr-action">Check Supabase logs before touching code</div>
+          <span class="qr-mode mode-dev">You First</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">Razorpay not loading</div>
+          <div class="qr-action">Check CSP, domain whitelist, key type (test/live)</div>
+          <span class="qr-mode mode-dev">You First</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">Works local, fails prod</div>
+          <div class="qr-action">Check env vars and CORS before any code change</div>
+          <span class="qr-mode mode-dev">You First</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">Agent wants to restructure</div>
+          <div class="qr-action">Stop — remind it of blueprint scope</div>
+          <span class="qr-mode mode-stop">Stop Agent</span>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-situation">3+ cycles on same bug</div>
+          <div class="qr-action">Switch to LLM to re-diagnose before more agent cycles</div>
+          <span class="qr-mode mode-llm">LLM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SECTION 4: PROMPT BUILDER ═══════════════ -->
+  <div class="section-panel" id="section-prompt">
+    <div class="sec-title" style="color:var(--c5)">Bug Report Prompt Builder</div>
+    <p class="sec-subtitle">Fill in the fields to generate a precise, agent-ready prompt. Good prompts cut cycles. This template forces you to do the diagnosis before you report.</p>
+
+    <div class="prompt-builder">
+      <div class="pb-hdr">
+        <span class="pb-title">Prompt Builder</span>
+        <span class="pb-desc">Generates a structured agent prompt from your inputs</span>
+      </div>
+      <div class="pb-body">
+
+        <div class="pb-field">
+          <label class="pb-label">Issue Type</label>
+          <select class="pb-select" id="pb-type" onchange="buildPrompt()">
+            <option value="bug">Bug Fix</option>
+            <option value="feature">New Feature</option>
+            <option value="env">Environment Issue</option>
+            <option value="perf">Performance</option>
+            <option value="compat">Browser Compatibility</option>
+          </select>
+        </div>
+
+        <div class="pb-field">
+          <label class="pb-label">Affected File (from blueprint)</label>
+          <input class="pb-input" id="pb-file" placeholder="src/hooks/useSubscription.ts" oninput="buildPrompt()">
+        </div>
+
+        <div class="pb-field">
+          <label class="pb-label">What Actually Happens</label>
+          <input class="pb-input" id="pb-actual" placeholder="Returns true for expired subscriptions" oninput="buildPrompt()">
+        </div>
+
+        <div class="pb-field">
+          <label class="pb-label">What Should Happen</label>
+          <input class="pb-input" id="pb-expected" placeholder="Returns false when endDate < today" oninput="buildPrompt()">
+        </div>
+
+        <div class="pb-field">
+          <label class="pb-label">Error Message (paste exact)</label>
+          <input class="pb-input" id="pb-error" placeholder="Paste exact console/network error here" oninput="buildPrompt()">
+        </div>
+
+        <div class="pb-field">
+          <label class="pb-label">Scope Constraint</label>
+          <input class="pb-input" id="pb-scope" placeholder="Do not change other hooks or component structure" oninput="buildPrompt()">
+        </div>
+
+        <div class="pb-field">
+          <label class="pb-label">Module (from blueprint)</label>
+          <select class="pb-select" id="pb-module" onchange="buildPrompt()">
+            <option value="Auth Module">Auth Module</option>
+            <option value="Payment Module">Payment Module</option>
+            <option value="Dashboard">Dashboard</option>
+            <option value="Data Layer">Data Layer</option>
+            <option value="API Client">API Client</option>
+          </select>
+        </div>
+
+        <div class="pb-field">
+          <label class="pb-label">Diagnosed As</label>
+          <select class="pb-select" id="pb-diagnosis" onchange="buildPrompt()">
+            <option value="code">Code issue (fails in all browsers/envs)</option>
+            <option value="env-safari">Environment — Safari only</option>
+            <option value="env-prod">Environment — Production only</option>
+            <option value="env-auth">Environment — Auth/RLS state</option>
+            <option value="unknown">Unknown — needs diagnosis</option>
+          </select>
+        </div>
+
+        <div style="grid-column:1/-1;position:relative;">
+          <label class="pb-label" style="margin-bottom:8px;display:block;">Generated Prompt</label>
+          <div class="pb-output" id="pb-output">Fill in the fields above to generate your prompt...</div>
+          <button class="copy-prompt-btn" onclick="copyPrompt()">⎘ copy</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .content -->
+
+<script>
+// ── SECTION SWITCHING ──────────────────────────────────────────────
+function switchSection(id) {
+  document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const map = { cycles:0, env:1, dos:2, prompt:3 };
+  if (map[id] !== undefined) tabs[map[id]].classList.add('active');
+  window.scrollTo({ top: document.querySelector('.nav-tabs').offsetTop - 10, behavior: 'smooth' });
+}
+
+// ── CHECKLIST ──────────────────────────────────────────────────────
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  const check = el.querySelector('.cl-check');
+  check.textContent = el.classList.contains('checked') ? '✓' : '';
+}
+
+// ── PROMPT BUILDER ─────────────────────────────────────────────────
+function buildPrompt() {
+  const type      = document.getElementById('pb-type').value;
+  const file      = document.getElementById('pb-file').value || '[file path from blueprint]';
+  const actual    = document.getElementById('pb-actual').value || '[what is happening]';
+  const expected  = document.getElementById('pb-expected').value || '[what should happen]';
+  const error     = document.getElementById('pb-error').value;
+  const scope     = document.getElementById('pb-scope').value || 'Do not change anything outside this file';
+  const module_   = document.getElementById('pb-module').value;
+  const diag      = document.getElementById('pb-diagnosis').value;
+
+  const typeLabels = {
+    bug: 'BUG FIX', feature: 'FEATURE', env: 'ENVIRONMENT FIX',
+    perf: 'PERFORMANCE', compat: 'BROWSER COMPATIBILITY FIX'
+  };
+  const diagNotes = {
+    code: 'Diagnosed as: code issue — reproduces in all browsers and environments.',
+    'env-safari': 'Diagnosed as: Safari-only compatibility issue. Do NOT change core logic — fix only the browser compatibility aspect.',
+    'env-prod': 'Diagnosed as: production environment issue. Check if this is config/env-var related before changing any code.',
+    'env-auth': 'Diagnosed as: auth/RLS state issue. Verify this is actually a code problem before proceeding — may be a Supabase RLS policy issue.',
+    unknown: 'Diagnosis: unknown. Please investigate and confirm whether this is a code issue or environment issue before making changes.'
+  };
+
+  const out = document.getElementById('pb-output');
+  out.innerHTML = `<span class="kw">TASK: ${typeLabels[type]||'FIX'}</span>
+<span class="kw">MODULE:</span> <span class="val">${module_}</span>
+<span class="kw">FILE:</span> <span class="val">${file}</span>
+
+<span class="kw">ACTUAL:</span> ${actual}
+<span class="kw">EXPECTED:</span> ${expected}
+${error ? `\n<span class="kw">ERROR:</span>\n<span style="color:#cc7744;">${error}</span>\n` : ''}
+<span class="kw">DIAGNOSIS:</span> ${diagNotes[diag] || ''}
+
+<span class="kw">SCOPE CONSTRAINT:</span> ${scope}
+<span style="color:var(--c3);">Do not refactor, rename, or restructure anything outside the stated file.
+Do not add features not described above.
+Confirm the fix before marking complete.</span>`;
+}
+
+function copyPrompt() {
+  const text = document.getElementById('pb-output').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-prompt-btn');
+    btn.textContent = '✓ copied';
+    setTimeout(() => btn.textContent = '⎘ copy', 1800);
+  });
+}
+
+// init
+buildPrompt();
+</script>
+</body>
+</html>
