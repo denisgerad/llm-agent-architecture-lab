@@ -305,6 +305,90 @@ h1 em { color: var(--c1); font-style: italic; }
 .mode-agent { background: rgba(167,139,250,0.1); color: var(--c5); }
 .mode-dev   { background: rgba(56,189,248,0.1);  color: var(--c1); }
 .mode-stop  { background: rgba(248,113,113,0.1); color: var(--c3); }
+
+/* ─── GLOBAL WORD-WRAP ─────────────────────────────────────────── */
+.rule-desc,
+.ex-body,
+.diag-question,
+.diag-action,
+.pt-body,
+.sec-subtitle,
+.vs-item,
+.subtitle {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ─── PC  (≥ 1280px) ──────────────────────────────────────────── */
+@media (min-width: 1280px) {
+  body { font-size: 13px; }
+  header { padding: 48px 56px 36px; }
+  .pipeline { padding: 0 56px; }
+  h1 { font-size: clamp(28px, 3vw, 46px); }
+  .subtitle { font-size: 12px; max-width: 700px; }
+  .content { padding: 44px 56px; max-width: 1160px; }
+  .sec-title { font-size: 30px; }
+  .sec-subtitle { font-size: 12px; }
+  .rule-desc { font-size: 12px; }
+  .ex-body { font-size: 12px; }
+  .pt-body { font-size: 12px; }
+  .diag-question, .diag-action { font-size: 12px; }
+  .vs-item { font-size: 12px; }
+}
+
+/* ─── iPad / Tablet  (768px – 1279px) ────────────────────────── */
+@media (min-width: 768px) and (max-width: 1279px) {
+  body { font-size: 12px; }
+  header { padding: 22px 24px 18px; }
+  .pipeline { padding: 0 24px; overflow-x: auto; }
+  .ps { padding: 11px 14px 11px 0; }
+  .ps-name { font-size: 10px; }
+  h1 { font-size: clamp(22px, 3vw, 34px); }
+  .subtitle { font-size: 11px; max-width: 100%; }
+  .content { padding: 24px 24px; max-width: 100%; }
+  .sec-title { font-size: 22px; }
+  .sec-subtitle { font-size: 11px; margin-bottom: 20px; max-width: 100%; }
+  .nav-tabs { padding: 0 24px; gap: 0; }
+  .nav-tab { padding: 10px 14px; font-size: 10px; }
+  .cycle-grid { gap: 12px; }
+  .env-vs-code { gap: 12px; }
+  .dos-donts-grid { gap: 12px; }
+  .rule-body { padding: 12px 14px; }
+  .rule-desc { font-size: 11px; }
+  .ex-body { font-size: 11px; }
+  .pt-body { font-size: 11px; }
+  .diag-step { grid-template-columns: 32px 1fr 1fr; }
+  .diag-question, .diag-action { padding: 10px 12px; font-size: 11px; }
+  .vs-item { font-size: 11px; padding: 8px 12px; }
+  .section-pills { gap: 6px; }
+  .section-pill { font-size: 9px; padding: 5px 10px; }
+}
+
+/* ─── Mobile  (< 768px) ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  body { font-size: 12px; }
+  header { padding: 14px 14px 12px; }
+  .pipeline { padding: 0 10px; }
+  .ps-name { display: none; }
+  h1 { font-size: clamp(18px, 6vw, 26px); }
+  .subtitle { font-size: 11px; }
+  .content { padding: 16px 14px; }
+  .sec-title { font-size: 20px; }
+  .sec-subtitle { font-size: 11px; margin-bottom: 16px; }
+  .nav-tabs { padding: 0 10px; }
+  .nav-tab { padding: 8px 10px; font-size: 9px; letter-spacing: 1px; }
+  .cycle-grid { grid-template-columns: 1fr; }
+  .env-vs-code { grid-template-columns: 1fr; }
+  .dos-donts-grid { grid-template-columns: 1fr; }
+  .diag-step { grid-template-columns: 28px 1fr; }
+  .diag-action { display: none; }
+  .rule-body { padding: 12px; }
+  .rule-desc { font-size: 11px; }
+  .ex-body { font-size: 10px; }
+  .pt-body { font-size: 10px; }
+  .section-pill { font-size: 9px; padding: 4px 9px; }
+}
 </style>
 </head>
 <body>

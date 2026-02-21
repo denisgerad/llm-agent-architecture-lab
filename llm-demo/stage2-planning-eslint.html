@@ -310,6 +310,64 @@ input[type=range] {
 
 .status-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c1-dim); border-radius: 6px; margin-bottom: 16px; }
 .status-row .status-text { font-size: 11px; color: var(--c1); }
+
+/* ─── GLOBAL WORD-WRAP ─────────────────────────────────────────── */
+.toggle-label,
+.rule-name,
+.status-text,
+.sidebar,
+.output-area,
+.out-content,
+.subtitle,
+textarea {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ─── PC  (≥ 1280px) ──────────────────────────────────────────── */
+@media (min-width: 1280px) {
+  body { font-size: 13px; }
+  header { padding: 40px 56px 32px; }
+  .pipeline { padding: 0 56px; }
+  h1 { font-size: clamp(24px, 2.8vw, 40px); }
+  .subtitle { font-size: 12px; }
+  .main-layout { grid-template-columns: 320px 1fr; }
+  .sidebar { padding: 28px 24px; }
+}
+
+/* ─── iPad / Tablet  (768px – 1279px) ────────────────────────── */
+@media (min-width: 768px) and (max-width: 1279px) {
+  body { font-size: 12px; }
+  header { padding: 22px 24px 18px; }
+  .pipeline { padding: 0 24px; overflow-x: auto; }
+  .pipe-stage { padding: 12px 16px 12px 0; }
+  .pipe-name { font-size: 10px; }
+  h1 { font-size: clamp(20px, 3vw, 32px); }
+  .subtitle { font-size: 11px; max-width: 100%; }
+  .main-layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); padding: 18px 20px; }
+  .toggle-label, .rule-name { font-size: 11px; }
+  .out-tab { padding: 10px 14px; font-size: 9px; }
+  .out-content, .out-panel { padding: 18px 20px; font-size: 12px; }
+  .status-row { padding: 8px 12px; }
+  .status-row .status-text { font-size: 10px; }
+}
+
+/* ─── Mobile  (< 768px) ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  body { font-size: 12px; }
+  header { padding: 16px 14px 14px; }
+  .pipeline { padding: 0 12px; }
+  .pipe-name { display: none; }
+  h1 { font-size: clamp(18px, 6vw, 26px); }
+  .subtitle { font-size: 11px; }
+  .main-layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); padding: 14px; }
+  .out-tab { padding: 8px 10px; font-size: 9px; letter-spacing: 1px; }
+  .out-content, .out-panel { padding: 14px; font-size: 11px; }
+  .gen-btn { font-size: 11px; padding: 10px; }
+}
 </style>
 </head>
 <body>

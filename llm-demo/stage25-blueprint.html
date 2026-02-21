@@ -365,6 +365,70 @@ textarea::placeholder { color: #252545; }
 #model-status-bar.ollama-partial { display:flex; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); color:var(--c5); }
 #model-status-bar .msb-icon { font-size:18px; }
 #model-status-bar .msb-sub { font-size:10px; font-weight:400; opacity:0.75; margin-left:6px; }
+
+/* ─── GLOBAL WORD-WRAP ─────────────────────────────────────────── */
+.subtitle,
+.file-card-body,
+.out-panel,
+.gen-hint,
+.tree-file-name,
+.tree-placeholder-text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ─── PC  (≥ 1280px) ──────────────────────────────────────────── */
+@media (min-width: 1280px) {
+  body { font-size: 13px; }
+  header { padding: 40px 56px 30px; }
+  .pipeline { padding: 0 56px; }
+  h1 { font-size: clamp(26px, 2.8vw, 42px); }
+  .subtitle { font-size: 12px; max-width: 680px; }
+  .main-layout { grid-template-columns: 400px 1fr; }
+  .out-panel { padding: 28px; font-size: 13px; }
+  .file-card-body { font-size: 12px; }
+}
+
+/* ─── iPad / Tablet  (768px – 1279px) ────────────────────────── */
+@media (min-width: 768px) and (max-width: 1279px) {
+  body { font-size: 12px; }
+  header { padding: 22px 24px 18px; }
+  .pipeline { padding: 0 24px; overflow-x: auto; }
+  .ps { padding: 11px 14px 11px 0; }
+  .ps-name { font-size: 10px; }
+  h1 { font-size: clamp(20px, 3vw, 32px); line-height: 1.2; }
+  .subtitle { font-size: 11px; max-width: 100%; }
+  .gap-callout { font-size: 10px; }
+  .input-grid { grid-template-columns: 1fr; }
+  .gen-row { flex-wrap: wrap; }
+  .gen-btn { width: 100%; }
+  .main-layout { grid-template-columns: 1fr; }
+  .tree-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 280px; }
+  .out-tab { padding: 10px 14px; font-size: 9px; }
+  .out-panel { padding: 18px 20px; font-size: 12px; }
+  .file-card-body { padding: 12px 14px; font-size: 11px; }
+  .gen-hint { font-size: 10px; }
+}
+
+/* ─── Mobile  (< 768px) ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  body { font-size: 12px; }
+  header { padding: 14px 14px 12px; }
+  .pipeline { padding: 0 10px; }
+  .ps-name { display: none; }
+  h1 { font-size: clamp(18px, 6vw, 26px); }
+  .subtitle { font-size: 11px; }
+  .gap-callout { font-size: 10px; flex-wrap: wrap; }
+  .input-grid { grid-template-columns: 1fr; }
+  .gen-row { flex-direction: column; }
+  .gen-btn { width: 100%; }
+  .main-layout { grid-template-columns: 1fr; }
+  .tree-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 220px; }
+  .out-tab { padding: 8px 10px; font-size: 9px; letter-spacing: 1px; }
+  .out-panel { padding: 14px; font-size: 11px; }
+  .file-card-body { padding: 10px 12px; font-size: 11px; }
+}
 </style>
 </head>
 <body>
