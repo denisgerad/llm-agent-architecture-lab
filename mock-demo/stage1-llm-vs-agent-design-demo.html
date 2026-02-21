@@ -355,6 +355,104 @@ textarea::placeholder { color: #33334a; }
 
 /* Streaming cursor */
 .cursor { display: inline-block; width: 2px; height: 12px; background: var(--llm-color); margin-left: 2px; animation: blink 0.8s infinite; vertical-align: middle; }
+
+/* ─── GLOBAL WORD-WRAP ─────────────────────────────────────────── */
+.panel-body,
+.module-desc,
+.reasoning-text,
+.log-msg,
+.verdict-card,
+.subtitle,
+textarea {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ─── PC  (≥ 1280px) ──────────────────────────────────────────── */
+@media (min-width: 1280px) {
+  body { font-size: 14px; }
+
+  header { padding: 44px 64px 32px; }
+  .prompt-section { padding: 28px 64px; }
+  .verdict-section { padding: 28px 64px; }
+
+  h1 { font-size: clamp(30px, 2.8vw, 48px); }
+  .subtitle { font-size: 13px; max-width: 680px; }
+
+  .panel-body { font-size: 13px; padding: 28px 28px; }
+  .module-desc { font-size: 12px; }
+  .reasoning-text { font-size: 12px; }
+  .agent-log { font-size: 12px; }
+  .log-type { font-size: 11px; }
+  .verdict-card { font-size: 12px; }
+}
+
+/* ─── iPad / Tablet  (768px – 1279px) ────────────────────────── */
+@media (min-width: 768px) and (max-width: 1279px) {
+  body { font-size: 13px; }
+
+  header { padding: 28px 28px 20px; }
+  h1 { font-size: clamp(22px, 3vw, 34px); line-height: 1.25; }
+  .subtitle { font-size: 12px; max-width: 100%; }
+  .header-eyebrow { font-size: 10px; letter-spacing: 3px; }
+
+  .prompt-section { padding: 18px 28px; }
+  .prompt-input-row { flex-wrap: wrap; gap: 10px; }
+  .prompt-input-row textarea { min-width: 0; font-size: 12px; }
+  .run-btn { width: 100%; text-align: center; }
+
+  .prompt-presets { gap: 6px; }
+  .preset-btn { font-size: 11px; padding: 5px 12px; }
+
+  /* Keep side-by-side but tighten panels */
+  .arena { grid-template-columns: 1fr 1fr; }
+
+  .panel-header { padding: 12px 16px; gap: 8px; }
+  .panel-title { font-size: 10px; letter-spacing: 1.5px; }
+  .panel-desc { display: none; }          /* hide long panel descriptions */
+  .status-chip { font-size: 9px; padding: 2px 8px; }
+
+  .panel-body { font-size: 12px; padding: 16px 16px; line-height: 1.7; }
+  .module-name { font-size: 11px; }
+  .module-desc { font-size: 11px; }
+  .reasoning-text { font-size: 11px; }
+  .arch-title { font-size: 10px; letter-spacing: 2px; }
+
+  .agent-log { font-size: 10px; line-height: 1.75; }
+  .log-time { min-width: 44px; font-size: 9px; }
+  .log-type { min-width: 52px; font-size: 9px; padding: 1px 4px; }
+
+  .verdict-section { padding: 20px 28px; }
+  .verdict-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .verdict-card { font-size: 11px; padding: 12px 14px; }
+}
+
+/* ─── Mobile  (< 768px) ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  body { font-size: 13px; }
+
+  header { padding: 20px 16px 16px; }
+  h1 { font-size: clamp(20px, 6vw, 28px); }
+  .subtitle { font-size: 12px; }
+
+  .prompt-section { padding: 14px 16px; }
+  .prompt-input-row { flex-direction: column; gap: 10px; }
+  .run-btn { width: 100%; }
+
+  .preset-btn { font-size: 10px; padding: 5px 10px; }
+
+  .arena { grid-template-columns: 1fr; }
+
+  .panel-header { padding: 10px 14px; }
+  .panel-body { font-size: 12px; padding: 14px 14px; }
+  .agent-log { font-size: 10px; }
+  .log-time { min-width: 40px; }
+  .log-type { min-width: 48px; }
+
+  .verdict-section { padding: 16px 16px; }
+  .verdict-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
