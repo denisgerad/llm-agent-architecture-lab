@@ -91,6 +91,31 @@ Defines:
 └── start-demo-servers.ps1  ← Helper script for local live demo
 ```
 
+## 📋 1️⃣ Mock Demo (Deterministic Mode)
+
+**Location:** `/mock-demo`
+
+### Purpose
+
+A fully offline, self-contained pipeline:
+- No API keys
+- No AI server
+- No network required
+- Fully deterministic outputs
+- Ideal for presentations and screenshots
+
+### Why It Exists
+
+- Instant and predictable
+- Shows the architecture clearly
+- Demonstrates stage hand-offs
+- Makes pipeline reasoning inspectable
+- Avoids probabilistic variability
+
+> This is your controlled lab environment.
+
+```
+
 ## 🤖 2️⃣ Ollama + Mistral Demo (Live Mode)
 
 **Location:** `/llm-demo`
@@ -157,30 +182,7 @@ Notes:
 - If you don't set an API key, pages that rely on the Anthropic API will receive upstream errors — but `part2-developer-discipline.html` runs without a key.
 
 
-## 📋 1️⃣ Mock Demo (Deterministic Mode)
 
-**Location:** `/mock-demo`
-
-### Purpose
-
-A fully offline, self-contained pipeline:
-- No API keys
-- No AI server
-- No network required
-- Fully deterministic outputs
-- Ideal for presentations and screenshots
-
-### Why It Exists
-
-- Instant and predictable
-- Shows the architecture clearly
-- Demonstrates stage hand-offs
-- Makes pipeline reasoning inspectable
-- Avoids probabilistic variability
-
-> This is your controlled lab environment.
-
----
 
 
 
