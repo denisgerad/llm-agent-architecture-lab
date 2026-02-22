@@ -114,7 +114,7 @@ A fully offline, self-contained pipeline:
 
 > This is your controlled lab environment.
 
-```
+
 
 ## 🤖 2️⃣ Ollama + Mistral Demo (Live Mode)
 
@@ -142,7 +142,7 @@ So this architecture separates:
 
 > This prevents common local LLM failure modes.
 
----
+
 
 ## 🧩 Part 2 — Local Demo & Anthropic Proxy
 
