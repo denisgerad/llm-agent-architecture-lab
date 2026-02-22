@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 2 — Module Design: Admin Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+:root {
+  --bg: #07080f;
+  --surface: #0b0c18;
+  --card: #0f1020;
+  --card2: #141528;
+  --border: #181930;
+  --border2: #222340;
+  --llm: #a78bfa;      /* purple — LLM */
+  --agent: #fb923c;    /* orange — Agent */
+  --dev: #34d399;      /* green — Developer */
+  --danger: #f87171;   /* red — blocker */
+  --warn: #fbbf24;     /* amber — warning */
+  --info: #38bdf8;     /* blue — info */
+  --llm-dim: rgba(167,139,250,0.07);
+  --agent-dim: rgba(251,146,60,0.07);
+  --dev-dim: rgba(52,211,153,0.07);
+  --danger-dim: rgba(248,113,113,0.07);
+  --text: #e0e2f8;
+  --muted: #44446a;
+  --muted2: #7878a8;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Playfair Display', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 12px; min-height: 100vh; }
+
+/* ── PIPELINE ── */
+.pipeline {
+  display: flex; align-items: center; padding: 0 36px;
+  background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto;
+}
+.ps { display: flex; align-items: center; gap: 8px; padding: 12px 16px 12px 0; flex-shrink: 0; }
+.ps-arrow { color: var(--border2); font-size: 14px; margin: 0 2px; }
+.ps-num { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+.done .ps-num { background: rgba(52,211,153,0.12); color: var(--dev); border: 1px solid rgba(52,211,153,0.2); }
+.now  .ps-num { background: rgba(167,139,250,0.15); color: var(--llm); border: 1px solid rgba(167,139,250,0.3); box-shadow: 0 0 10px rgba(167,139,250,0.15); }
+.next .ps-num { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+.ps-tag { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; }
+.done .ps-tag { color: var(--dev); } .now .ps-tag { color: var(--llm); } .next .ps-tag { color: var(--muted); }
+.ps-name { font-size: 10px; font-weight: 600; }
+.done .ps-name { color: #5577aa; } .now .ps-name { color: var(--text); } .next .ps-name { color: var(--muted); }
+
+/* ── HEADER ── */
+header {
+  padding: 36px 36px 28px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(160deg, #0a0820 0%, var(--bg) 60%);
+  position: relative; overflow: hidden;
+}
+header::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--llm), var(--agent), transparent); opacity: 0.3;
+}
+.eyebrow { font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: var(--llm); opacity: 0.7; margin-bottom: 10px; }
+h1 { font-family: var(--serif); font-size: clamp(24px, 3vw, 40px); font-weight: 400; color: #f0f2ff; line-height: 1.15; }
+h1 em { color: var(--llm); font-style: italic; }
+.subtitle { margin-top: 10px; font-size: 11px; color: var(--muted2); line-height: 1.75; max-width: 680px; }
+
+.mode-pills { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.mode-pill {
+  display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+  border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 1px; border: 1px solid;
+}
+.pill-llm   { border-color: rgba(167,139,250,0.3); color: var(--llm); background: var(--llm-dim); }
+.pill-agent { border-color: rgba(251,146,60,0.3);  color: var(--agent); background: var(--agent-dim); }
+.pill-dev   { border-color: rgba(52,211,153,0.3);  color: var(--dev); background: var(--dev-dim); }
+.pill-dot { width: 7px; height: 7px; border-radius: 50%; }
+.pill-llm .pill-dot { background: var(--llm); } .pill-agent .pill-dot { background: var(--agent); } .pill-dev .pill-dot { background: var(--dev); }
+
+/* ── STEP PROGRESS BAR ── */
+.step-bar {
+  display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0; overflow-x: auto;
+}
+.step-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 14px 12px; cursor: pointer; transition: all 0.2s;
+  border-bottom: 3px solid transparent; position: relative; min-width: 120px;
+}
+.step-item:not(:last-child)::after {
+  content: '›'; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+  color: var(--border2); font-size: 16px; z-index: 1;
+}
+.step-item.active { border-bottom-color: var(--llm); }
+.step-item.agent-step.active { border-bottom-color: var(--agent); }
+.step-item.dev-step.active { border-bottom-color: var(--dev); }
+.step-item.done-step { opacity: 0.7; }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 700; margin-bottom: 6px;
+  border: 2px solid var(--border2); color: var(--muted); background: var(--card); transition: all 0.3s;
+}
+.step-item.active .step-num { border-color: var(--llm); color: var(--llm); background: var(--llm-dim); box-shadow: 0 0 12px rgba(167,139,250,0.2); }
+.step-item.agent-step.active .step-num { border-color: var(--agent); color: var(--agent); background: var(--agent-dim); box-shadow: 0 0 12px rgba(251,146,60,0.2); }
+.step-item.dev-step.active .step-num { border-color: var(--dev); color: var(--dev); background: var(--dev-dim); box-shadow: 0 0 12px rgba(52,211,153,0.2); }
+.step-item.done-step .step-num { border-color: var(--dev); color: var(--dev); background: var(--dev-dim); }
+.step-label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.step-item.active .step-label { color: var(--llm); }
+.step-item.agent-step.active .step-label { color: var(--agent); }
+.step-item.dev-step.active .step-label { color: var(--dev); }
+.step-name { font-size: 10px; color: var(--muted2); text-align: center; }
+.step-item.active .step-name { color: var(--text); }
+
+/* ── CONTEXT STRIP ── */
+.context-strip {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 36px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.ctx-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.ctx-pill {
+  padding: 4px 12px; border-radius: 10px; font-size: 10px; border: 1px solid var(--border2);
+  background: var(--card); color: var(--muted2);
+}
+.ctx-pill strong { color: var(--text); }
+.ctx-divider { color: var(--border2); }
+
+/* ── MAIN ── */
+.main { padding: 32px 36px; max-width: 1100px; }
+.step-panel { display: none; }
+.step-panel.active { display: block; animation: fi 0.3s ease; }
+@keyframes fi { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── STEP HEADER ── */
+.step-hdr { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.step-hdr-num {
+  width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; font-family: var(--serif);
+}
+.llm-hdr .step-hdr-num { background: var(--llm-dim); color: var(--llm); border: 2px solid rgba(167,139,250,0.25); }
+.agent-hdr .step-hdr-num { background: var(--agent-dim); color: var(--agent); border: 2px solid rgba(251,146,60,0.25); }
+.dev-hdr .step-hdr-num { background: var(--dev-dim); color: var(--dev); border: 2px solid rgba(52,211,153,0.25); }
+.step-hdr-info { flex: 1; }
+.step-hdr-tag { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+.llm-hdr .step-hdr-tag { color: var(--llm); }
+.agent-hdr .step-hdr-tag { color: var(--agent); }
+.dev-hdr .step-hdr-tag { color: var(--dev); }
+.step-hdr-title { font-family: var(--serif); font-size: 22px; font-weight: 400; color: #f0f2ff; margin-bottom: 6px; }
+.step-hdr-desc { font-size: 11px; color: var(--muted2); line-height: 1.7; max-width: 600px; }
+
+/* ── INTENT BOX ── */
+.intent-box {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 10px;
+  overflow: hidden; margin-bottom: 24px;
+}
+.intent-hdr {
+  padding: 12px 18px; background: var(--card2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.intent-hdr-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.intent-hdr-who { font-size: 10px; font-weight: 700; margin-left: auto; }
+.intent-body { padding: 16px 18px; font-size: 12px; line-height: 1.75; color: var(--text); }
+.intent-body .quote { color: var(--muted2); font-style: italic; font-size: 11px; margin-top: 8px; }
+textarea.intent-input {
+  width: 100%; background: transparent; border: none; color: var(--text);
+  font-family: var(--mono); font-size: 12px; resize: none; outline: none;
+  line-height: 1.75; min-height: 60px;
+}
+textarea.intent-input::placeholder { color: var(--muted); }
+
+/* ── RUN BUTTON ── */
+.run-btn {
+  padding: 12px 28px; border: none; border-radius: 8px;
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
+}
+.run-llm   { background: var(--llm); color: #fff; }
+.run-llm:hover { background: #c4b5fd; color: #1a0040; transform: translateY(-1px); }
+.run-agent { background: var(--agent); color: #fff; }
+.run-agent:hover { background: #fdba74; color: #1a0800; transform: translateY(-1px); }
+.run-llm2  { background: var(--llm); color: #fff; }
+.run-llm2:hover { background: #c4b5fd; color: #1a0040; transform: translateY(-1px); }
+.run-s3    { background: var(--dev); color: #000; }
+.run-s3:hover { background: #6ee7b7; transform: translateY(-1px); }
+.run-btn:disabled { background: #1a1a30; color: #333355; cursor: not-allowed; transform: none; }
+
+/* ── OUTPUT CARDS ── */
+.out-card {
+  background: var(--card); border: 1px solid var(--border2); border-radius: 10px;
+  overflow: hidden; margin-bottom: 20px;
+}
+.out-card-hdr {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.out-card-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.llm-dot { background: var(--llm); box-shadow: 0 0 8px var(--llm); }
+.agent-dot { background: var(--agent); box-shadow: 0 0 8px var(--agent); }
+.dev-dot { background: var(--dev); box-shadow: 0 0 8px var(--dev); }
+.out-card-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.llm-title { color: var(--llm); } .agent-title { color: var(--agent); } .dev-title { color: var(--dev); }
+.out-card-body { padding: 20px; }
+
+/* ── REASONING STREAM ── */
+.reasoning-stream {
+  font-size: 11px; line-height: 1.85; color: var(--muted2);
+  border-left: 2px solid var(--border2); padding-left: 16px; margin-bottom: 16px;
+}
+.reasoning-stream .thought { margin-bottom: 10px; }
+.reasoning-stream .thought .t-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; }
+.reasoning-stream .thought .t-text { color: var(--muted2); }
+.reasoning-stream .thought .t-text strong { color: var(--text); }
+.reasoning-stream .thought .t-text .hi-llm { color: var(--llm); }
+.reasoning-stream .thought .t-text .hi-agent { color: var(--agent); }
+.reasoning-stream .thought .t-text .hi-warn { color: var(--warn); }
+.reasoning-stream .thought .t-text .hi-danger { color: var(--danger); }
+.reasoning-stream .thought .t-text .hi-good { color: var(--dev); }
+
+/* ── MODULE DESIGN CARDS ── */
+.module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.module-card {
+  background: var(--card2); border: 1px solid var(--border2); border-left: 3px solid var(--llm);
+  border-radius: 6px; padding: 14px 16px;
+}
+.mc-name { font-size: 12px; font-weight: 700; color: var(--llm); margin-bottom: 6px; }
+.mc-files { display: flex; flex-direction: column; gap: 3px; }
+.mc-file { font-size: 10px; color: var(--info); display: flex; align-items: center; gap: 5px; }
+.mc-file::before { content: '→'; color: var(--muted); }
+.mc-assumes { margin-top: 8px; font-size: 10px; color: var(--warn); display: flex; align-items: flex-start; gap: 5px; line-height: 1.5; }
+.mc-assumes::before { content: '⚡'; flex-shrink: 0; }
+
+/* ── GAP REPORT ── */
+.gap-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.gap-item {
+  display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px;
+  border-radius: 6px; border: 1px solid; font-size: 11px; line-height: 1.6;
+}
+.gap-blocker { background: var(--danger-dim); border-color: rgba(248,113,113,0.2); }
+.gap-warning { background: rgba(251,191,36,0.05); border-color: rgba(251,191,36,0.2); }
+.gap-info    { background: rgba(56,189,248,0.05); border-color: rgba(56,189,248,0.15); }
+.gap-badge {
+  padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700;
+  letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; margin-top: 1px;
+}
+.badge-blocker { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.25); }
+.badge-warning { background: rgba(251,191,36,0.12); color: var(--warn); border: 1px solid rgba(251,191,36,0.2); }
+.badge-info    { background: rgba(56,189,248,0.1);  color: var(--info); border: 1px solid rgba(56,189,248,0.15); }
+.gap-content { flex: 1; }
+.gap-what { font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.gap-why  { color: var(--muted2); font-size: 10px; }
+.gap-blocker .gap-what { color: var(--danger); }
+.gap-warning .gap-what { color: var(--warn); }
+
+/* ── DECISION CARDS ── */
+.decision-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.decision-item {
+  background: var(--card2); border: 1px solid var(--border2); border-radius: 8px;
+  padding: 14px 16px; display: flex; align-items: flex-start; gap: 14px;
+}
+.decision-item .gap-ref { font-size: 10px; color: var(--danger); min-width: 120px; flex-shrink: 0; }
+.decision-item .gap-ref.warn-ref { color: var(--warn); }
+.decision-item .decision-text { flex: 1; font-size: 11px; color: var(--muted2); line-height: 1.6; }
+.decision-item .decision-text strong { color: var(--text); display: block; margin-bottom: 4px; }
+.decision-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.d-btn {
+  padding: 5px 14px; border-radius: 16px; font-size: 10px; font-weight: 700;
+  cursor: pointer; border: 1px solid; transition: all 0.2s; font-family: var(--mono);
+  letter-spacing: 0.5px;
+}
+.d-fix   { border-color: rgba(52,211,153,0.3); color: var(--dev); background: var(--dev-dim); }
+.d-fix:hover   { background: rgba(52,211,153,0.15); }
+.d-accept { border-color: rgba(251,191,36,0.3); color: var(--warn); background: rgba(251,191,36,0.05); }
+.d-accept:hover { background: rgba(251,191,36,0.12); }
+.d-btn.selected-fix    { background: rgba(52,211,153,0.2); border-color: var(--dev); }
+.d-btn.selected-accept { background: rgba(251,191,36,0.15); border-color: var(--warn); }
+
+/* ── FINAL DESIGN ── */
+.final-section { margin-bottom: 20px; }
+.final-title {
+  font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+}
+.final-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.decision-card {
+  background: var(--card2); border: 1px solid var(--border2); border-left: 3px solid var(--llm);
+  border-radius: 6px; padding: 14px 16px; margin-bottom: 10px;
+}
+.dc-title { font-size: 12px; font-weight: 700; color: var(--llm); margin-bottom: 8px; }
+.dc-row { display: flex; gap: 10px; margin-bottom: 6px; align-items: flex-start; }
+.dc-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; min-width: 80px; padding-top: 2px; }
+.dc-val { font-size: 11px; color: var(--muted2); line-height: 1.6; flex: 1; }
+.dc-val strong { color: var(--text); }
+.dc-val .good { color: var(--dev); }
+.dc-val .warn { color: var(--warn); }
+
+/* ── EXECUTION PACKAGE ── */
+.exec-pkg {
+  background: var(--card); border: 1px solid rgba(52,211,153,0.2); border-radius: 10px;
+  overflow: hidden; margin-bottom: 20px;
+}
+.exec-pkg-hdr {
+  padding: 14px 20px; background: rgba(52,211,153,0.05); border-bottom: 1px solid rgba(52,211,153,0.1);
+  display: flex; align-items: center; gap: 12px;
+}
+.exec-badge { padding: 5px 12px; background: rgba(52,211,153,0.12); color: var(--dev); border: 1px solid rgba(52,211,153,0.2); border-radius: 16px; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.exec-desc { font-size: 11px; color: var(--muted2); line-height: 1.6; }
+.exec-desc strong { color: var(--text); }
+
+.part-block {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+}
+.part-block:last-child { border-bottom: none; }
+.part-label {
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.part-a { color: var(--warn); }
+.part-b { color: var(--llm); }
+.part-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.task-list { display: flex; flex-direction: column; gap: 6px; }
+.task-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px;
+  background: var(--card2); border-radius: 5px; border: 1px solid var(--border2);
+  font-size: 11px;
+}
+.task-num { color: var(--muted); min-width: 24px; flex-shrink: 0; }
+.task-file { color: var(--info); flex: 1; }
+.task-action { font-size: 10px; color: var(--muted); min-width: 60px; text-align: right; flex-shrink: 0; }
+.task-action.create { color: var(--dev); }
+.task-action.fix    { color: var(--warn); }
+.task-action.extract{ color: var(--llm); }
+
+.code-block {
+  background: var(--card2); border: 1px solid var(--border2); border-radius: 6px;
+  overflow: hidden; margin-top: 12px;
+}
+.code-hdr {
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.code-name { font-size: 10px; color: var(--dev); font-weight: 700; }
+.copy-btn {
+  margin-left: auto; padding: 3px 10px; background: transparent;
+  border: 1px solid var(--border2); color: var(--muted); font-family: var(--mono);
+  font-size: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+}
+.copy-btn:hover { border-color: var(--dev); color: var(--dev); }
+.code-body {
+  padding: 14px; font-size: 11px; line-height: 1.8; white-space: pre;
+  overflow-x: auto; color: #8888bb; max-height: 300px; overflow-y: auto;
+}
+.t-key { color: #a78bfa; } .t-str { color: #86efac; } .t-num { color: #fb923c; }
+.t-comment { color: #2a2a50; font-style: italic; }
+
+/* status */
+.status-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border-radius: 6px; margin-bottom: 16px; font-size: 11px;
+}
+.status-llm { background: var(--llm-dim); border: 1px solid rgba(167,139,250,0.15); color: var(--llm); }
+.status-agent { background: var(--agent-dim); border: 1px solid rgba(251,146,60,0.15); color: var(--agent); }
+.status-dev { background: var(--dev-dim); border: 1px solid rgba(52,211,153,0.15); color: var(--dev); }
+.loader { display: inline-block; width: 10px; height: 10px; border: 2px solid rgba(255,255,255,0.1); border-top-color: currentColor; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* nav btns */
+.nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+.nav-back { padding: 10px 20px; background: transparent; border: 1px solid var(--border2); color: var(--muted2); font-family: var(--mono); font-size: 11px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+.nav-back:hover { border-color: var(--border2); color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- PIPELINE -->
+<div class="pipeline">
+  <div class="ps done"><div class="ps-num">✓</div><div class="ps-info"><div class="ps-tag">Part 1</div><div class="ps-name">Project Design</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps now"><div class="ps-num">2</div><div class="ps-info"><div class="ps-tag">Part 2 — Now</div><div class="ps-name">Module Design</div></div></div>
+  <div class="ps-arrow">›</div>
+  <div class="ps next"><div class="ps-num">3</div><div class="ps-info"><div class="ps-tag">Next</div><div class="ps-name">Agent Execution</div></div></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="eyebrow">Part 2 // Module Design Flow</div>
+  <h1>Adding a Module to a<br><em>Living Codebase</em></h1>
+  <p class="subtitle">The project was built — but reality diverged from the blueprint. The developer needs to add an Admin Dashboard. This demo shows the correct workflow: LLM designs against theory, Agent audits reality, Developer decides on gaps, LLM produces the final design.</p>
+  <div class="mode-pills">
+    <div class="mode-pill pill-llm"><span class="pill-dot"></span>LLM — Knows design intent</div>
+    <div class="mode-pill pill-agent"><span class="pill-dot"></span>Agent — Knows actual codebase</div>
+    <div class="mode-pill pill-dev"><span class="pill-dot"></span>Developer — Makes gap decisions</div>
+  </div>
+</header>
+
+<!-- STEP BAR -->
+<div class="step-bar">
+  <div class="step-item active" id="step-tab-1" onclick="goStep(1)">
+    <div class="step-num">1</div>
+    <div class="step-label">LLM</div>
+    <div class="step-name">Theoretical Design</div>
+  </div>
+  <div class="step-item agent-step" id="step-tab-2" onclick="goStep(2)">
+    <div class="step-num">2</div>
+    <div class="step-label">Agent</div>
+    <div class="step-name">Gap Report</div>
+  </div>
+  <div class="step-item dev-step" id="step-tab-3" onclick="goStep(3)">
+    <div class="step-num">3</div>
+    <div class="step-label">Developer</div>
+    <div class="step-name">Gap Decisions</div>
+  </div>
+  <div class="step-item" id="step-tab-4" onclick="goStep(4)">
+    <div class="step-num">4</div>
+    <div class="step-label">LLM</div>
+    <div class="step-name">Final Design</div>
+  </div>
+  <div class="step-item dev-step" id="step-tab-5" onclick="goStep(5)">
+    <div class="step-num">5</div>
+    <div class="step-label">Stage 3</div>
+    <div class="step-name">Execution Package</div>
+  </div>
+</div>
+
+<!-- CONTEXT STRIP -->
+<div class="context-strip">
+  <span class="ctx-label">Project</span>
+  <span class="ctx-pill"><strong>React</strong> E-Commerce Dashboard</span>
+  <span class="ctx-divider">·</span>
+  <span class="ctx-pill"><strong>Supabase</strong> + Razorpay</span>
+  <span class="ctx-divider">·</span>
+  <span class="ctx-pill">Blueprint exists <strong>✓</strong></span>
+  <span class="ctx-divider">·</span>
+  <span class="ctx-pill">Codebase <strong style="color:var(--warn)">drifted</strong> from blueprint</span>
+  <span class="ctx-divider">·</span>
+  <span class="ctx-pill">New module: <strong style="color:var(--llm)">Admin Dashboard</strong></span>
+</div>
+
+<div class="main">
+
+  <!-- ═══════════ STEP 1: LLM THEORETICAL DESIGN ═══════════ -->
+  <div class="step-panel active" id="panel-1">
+    <div class="step-hdr llm-hdr">
+      <div class="step-hdr-num">1</div>
+      <div class="step-hdr-info">
+        <div class="step-hdr-tag">Step 1 — LLM Mode</div>
+        <div class="step-hdr-title">Theoretical Design</div>
+        <div class="step-hdr-desc">Developer describes the new module. LLM designs against the original blueprint — as if the project was built perfectly. It reasons aloud, surfaces assumptions, and produces a theoretical design with explicit dependencies.</div>
+      </div>
+    </div>
+
+    <!-- Developer intent -->
+    <div class="intent-box">
+      <div class="intent-hdr">
+        <span class="intent-hdr-label">Developer Request</span>
+        <span class="intent-hdr-who" style="color:var(--dev)">● Developer</span>
+      </div>
+      <div class="intent-body">
+        <textarea class="intent-input" id="dev-intent" rows="3">I need to add an Admin Dashboard to our e-commerce app. It should have user management (view/suspend users), subscription overview (all active plans, revenue), and payment history with refund capability.</textarea>
+      </div>
+    </div>
+
+    <button class="run-btn run-llm" id="btn-step1" onclick="runStep1()">
+      <span>▶</span> LLM: Design Against Blueprint
+    </button>
+
+    <div id="output-step1" style="display:none;margin-top:20px;">
+      <div class="out-card">
+        <div class="out-card-hdr">
+          <span class="out-card-dot llm-dot"></span>
+          <span class="out-card-title llm-title">LLM Reasoning — Thinking Aloud</span>
+        </div>
+        <div class="out-card-body">
+          <div class="reasoning-stream" id="llm-reasoning"></div>
+          <div id="llm-modules"></div>
+        </div>
+      </div>
+      <div class="nav-row">
+        <div></div>
+        <button class="run-btn run-agent" onclick="goStep(2)">Next: Agent Gap Report →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 2: AGENT GAP REPORT ═══════════ -->
+  <div class="step-panel" id="panel-2">
+    <div class="step-hdr agent-hdr">
+      <div class="step-hdr-num">2</div>
+      <div class="step-hdr-info">
+        <div class="step-hdr-tag">Step 2 — Agent Mode</div>
+        <div class="step-hdr-title">Gap Report</div>
+        <div class="step-hdr-desc">Agent reads the LLM's theoretical design and compares it against the actual drifted codebase. It identifies what the design assumes exists — but doesn't. Blockers vs warnings are clearly separated.</div>
+      </div>
+    </div>
+
+    <!-- Drifted codebase display -->
+    <div class="out-card" style="margin-bottom:20px;">
+      <div class="out-card-hdr">
+        <span class="out-card-dot agent-dot"></span>
+        <span class="out-card-title agent-title">Actual Codebase (Drifted Reality)</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--muted);">What was actually built</span>
+      </div>
+      <div class="out-card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">BLUEPRINT SAID</div>
+            <div class="code-body" style="background:var(--card2);border-radius:6px;padding:12px;max-height:220px;white-space:pre;font-size:10px;color:#6666aa;">src/
+  components/
+    <span style="color:var(--llm)">Auth/</span>           ← PascalCase
+      LoginForm.tsx
+      RegisterForm.tsx
+      <span style="color:var(--warn)">AuthGuard.tsx</span>
+      index.ts
+    <span style="color:var(--llm)">Subscription/</span>
+      PlanSelector.tsx
+      PaymentForm.tsx
+      SubscriptionStatus.tsx
+      index.ts
+    Dashboard/
+      DashboardLayout.tsx
+      UserProfile.tsx
+      UsageStats.tsx
+  hooks/
+    useAuth.ts
+    <span style="color:var(--warn)">useSubscription.ts</span>
+    <span style="color:var(--warn)">usePayment.ts</span>
+  <span style="color:var(--llm)">services/</span>
+    supabaseClient.ts
+    razorpayClient.ts
+    apiWrapper.ts
+  <span style="color:var(--llm)">types/</span>
+    user.ts
+    subscription.ts
+    payment.ts</div>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;color:var(--warn);margin-bottom:10px;">REALITY (DRIFTED)</div>
+            <div class="code-body" style="background:var(--card2);border-radius:6px;padding:12px;max-height:220px;white-space:pre;font-size:10px;color:#6666aa;">src/
+  components/
+    <span style="color:var(--warn)">auth/</span>           ← lowercase!
+      login.tsx       ← renamed
+      register.tsx    ← renamed
+      <span style="color:var(--danger)">✗ AuthGuard.tsx  ← MISSING</span>
+      <span style="color:var(--danger)">✗ index.ts       ← MISSING</span>
+    <span style="color:var(--warn)">payments/</span>       ← renamed folder
+      Plans.tsx       ← renamed
+      Checkout.tsx    ← renamed
+      <span style="color:var(--danger)">✗ SubscriptionStatus.tsx ← MISSING</span>
+      <span style="color:var(--danger)">✗ index.ts       ← MISSING</span>
+    Dashboard/        ← ✓ intact
+      DashboardLayout.tsx ✓
+      UserProfile.tsx ✓
+      Stats.tsx       ← renamed
+  hooks/
+    useAuth.ts ✓
+    <span style="color:var(--danger)">✗ useSubscription.ts ← MISSING</span>
+    <span style="color:var(--danger)">✗ usePayment.ts  ← MISSING</span>
+  <span style="color:var(--warn)">utils/</span>           ← renamed!
+    supabase.js       ← JS not TS!
+    razorpay.js       ← JS not TS!
+    <span style="color:var(--danger)">✗ apiWrapper.ts  ← MISSING</span>
+  <span style="color:var(--danger)">✗ types/           ← ENTIRE FOLDER MISSING</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn run-agent" id="btn-step2" onclick="runStep2()">
+      <span>▶</span> Agent: Analyse Gaps vs LLM Design
+    </button>
+
+    <div id="output-step2" style="display:none;margin-top:20px;">
+      <div class="out-card">
+        <div class="out-card-hdr">
+          <span class="out-card-dot agent-dot"></span>
+          <span class="out-card-title agent-title">Agent Gap Report</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--muted);">Evaluated against actual codebase</span>
+        </div>
+        <div class="out-card-body">
+          <div id="agent-gap-report"></div>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="nav-back" onclick="goStep(1)">← Back</button>
+        <button class="run-btn run-llm" onclick="goStep(3)">Next: Review Gaps →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 3: DEVELOPER GAP DECISIONS ═══════════ -->
+  <div class="step-panel" id="panel-3">
+    <div class="step-hdr dev-hdr">
+      <div class="step-hdr-num">3</div>
+      <div class="step-hdr-info">
+        <div class="step-hdr-tag">Step 3 — Developer Decision</div>
+        <div class="step-hdr-title">Gap Decisions</div>
+        <div class="step-hdr-desc">Review each gap identified by the Agent. Decide: fix it now before Admin Dashboard build, or accept the risk and proceed. These decisions shape the final LLM design. You own the technical debt choices — not the AI.</div>
+      </div>
+    </div>
+
+    <div class="out-card">
+      <div class="out-card-hdr">
+        <span class="out-card-dot dev-dot"></span>
+        <span class="out-card-title dev-title">Your Decisions</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--muted);">Select fix or accept for each gap</span>
+      </div>
+      <div class="out-card-body">
+        <div class="decision-grid" id="decision-grid"></div>
+        <button class="run-btn run-llm2" id="btn-step3" onclick="goStep(4)" style="margin-top:8px;">
+          <span>▶</span> LLM: Design With My Decisions
+        </button>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="nav-back" onclick="goStep(2)">← Back</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 4: LLM FINAL DESIGN ═══════════ -->
+  <div class="step-panel" id="panel-4">
+    <div class="step-hdr llm-hdr">
+      <div class="step-hdr-num">4</div>
+      <div class="step-hdr-info">
+        <div class="step-hdr-tag">Step 4 — LLM Final</div>
+        <div class="step-hdr-title">Final Admin Dashboard Design</div>
+        <div class="step-hdr-desc">LLM redesigns the Admin Dashboard using three inputs: original blueprint (intent), agent's gap report (reality), and your gap decisions. The result is a design the agent can actually execute against what exists — not what was planned.</div>
+      </div>
+    </div>
+
+    <button class="run-btn run-llm" id="btn-step4" onclick="runStep4()">
+      <span>▶</span> LLM: Generate Final Design
+    </button>
+
+    <div id="output-step4" style="display:none;margin-top:20px;">
+      <div class="out-card">
+        <div class="out-card-hdr">
+          <span class="out-card-dot llm-dot"></span>
+          <span class="out-card-title llm-title">Final Admin Dashboard Design</span>
+        </div>
+        <div class="out-card-body" id="final-design-body"></div>
+      </div>
+      <div class="nav-row">
+        <button class="nav-back" onclick="goStep(3)">← Back</button>
+        <button class="run-btn run-s3" onclick="goStep(5)">Generate Stage 3 Package →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 5: STAGE 3 EXECUTION PACKAGE ═══════════ -->
+  <div class="step-panel" id="panel-5">
+    <div class="step-hdr dev-hdr">
+      <div class="step-hdr-num">5</div>
+      <div class="step-hdr-info">
+        <div class="step-hdr-tag">Step 5 — Stage 3 Mandatory</div>
+        <div class="step-hdr-title">Agent Execution Package</div>
+        <div class="step-hdr-desc">The complete handover. Part A remediates the blockers you chose to fix. Part B builds the Admin Dashboard. Agent executes A → B in sequence. Zero ambiguity, zero assumptions.</div>
+      </div>
+    </div>
+
+    <button class="run-btn run-s3" id="btn-step5" onclick="runStep5()">
+      <span>▶</span> Generate Execution Package
+    </button>
+
+    <div id="output-step5" style="display:none;margin-top:20px;"></div>
+
+    <div class="nav-row" style="margin-top:20px;">
+      <button class="nav-back" onclick="goStep(4)">← Back</button>
+    </div>
+  </div>
+
+</div><!-- end .main -->
+
+<script>
+// ── DEMO DATA ─────────────────────────────────────────────────────────────
+
+const DRIFTED_CODEBASE = {
+  existing: [
+    'src/components/auth/login.tsx',
+    'src/components/auth/register.tsx',
+    'src/components/payments/Plans.tsx',
+    'src/components/payments/Checkout.tsx',
+    'src/components/Dashboard/DashboardLayout.tsx',
+    'src/components/Dashboard/UserProfile.tsx',
+    'src/components/Dashboard/Stats.tsx',
+    'src/hooks/useAuth.ts',
+    'src/utils/supabase.js',
+    'src/utils/razorpay.js',
+  ],
+  missing: [
+    'src/components/auth/AuthGuard.tsx',
+    'src/components/auth/index.ts',
+    'src/components/payments/SubscriptionStatus.tsx',
+    'src/components/payments/index.ts',
+    'src/hooks/useSubscription.ts',
+    'src/hooks/usePayment.ts',
+    'src/services/apiWrapper.ts',
+    'src/types/',
+  ],
+  drift: [
+    { was: 'src/components/Auth/', now: 'src/components/auth/', issue: 'lowercase — case-sensitive servers' },
+    { was: 'src/components/Subscription/', now: 'src/components/payments/', issue: 'folder renamed' },
+    { was: 'src/services/', now: 'src/utils/', issue: 'folder renamed, .ts → .js' },
+  ]
+};
+
+const GAPS = [
+  { id: 'authguard', badge: 'BLOCKER', type: 'blocker', what: 'AuthGuard.tsx is missing', why: 'Admin Dashboard requires route protection. Without AuthGuard, any admin route is unprotected. This must exist before Admin can be built safely.', decision: null },
+  { id: 'types', badge: 'BLOCKER', type: 'blocker', what: 'Entire types/ folder missing', why: 'Admin Dashboard needs User, Subscription, and Payment types. Building Admin without types means no compile-time safety on payment data or user management operations.', decision: null },
+  { id: 'hooks', badge: 'BLOCKER', type: 'blocker', what: 'useSubscription.ts and usePayment.ts missing', why: 'Admin subscription overview and payment history panels need these hooks. Without them, Admin would duplicate payment logic from Checkout.tsx — creating two sources of truth.', decision: null },
+  { id: 'jsfiles', badge: 'WARNING', type: 'warning', what: 'Supabase and Razorpay services are .js not .ts', why: 'Admin will call these services. Without TypeScript, API response shapes are untyped — silent runtime errors on payment data are possible.', decision: null },
+  { id: 'barrels', badge: 'WARNING', type: 'warning', what: 'No barrel index.ts files in any folder', why: 'Admin imports will be verbose and path-brittle. Acceptable for now but makes future refactoring harder.', decision: null },
+  { id: 'naming', badge: 'INFO', type: 'info', what: 'Folder naming inconsistent (auth/ vs Dashboard/)', why: 'Convention drift only. Does not block Admin build but new Admin/ folder should follow PascalCase to partially restore consistency.', decision: null },
+];
+
+let gapDecisions = {}; // id → 'fix' | 'accept'
+let llmTheoryData = null;
+let finalDesignData = null;
+
+// ── JSON REPAIR ────────────────────────────────────────────────────────────
+function repairJSON(raw) {
+  let text = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/,'').trim();
+  try { return JSON.parse(text); } catch(e) {}
+  const inStrCheck = s => { let ins=false,esc=false; for(const c of s){if(esc){esc=false;continue;}if(c==='\\'){esc=true;continue;}if(c==='"')ins=!ins;} return ins; };
+  let safe = text;
+  for(let i=text.length-1;i>text.length*0.5;i--){const sl=text.slice(0,i);if(!inStrCheck(sl)){safe=sl.replace(/[,\s]+$/,'');break;}}
+  let opens=[];let ins2=false,esc2=false;
+  for(const c of safe){if(esc2){esc2=false;continue;}if(c==='\\'){esc2=true;continue;}if(c==='"'){ins2=!ins2;continue;}if(ins2)continue;if(c==='{')opens.push('}');if(c==='[')opens.push(']');if(c==='}'||c===']')opens.pop();}
+  try{return JSON.parse(safe+opens.reverse().join(''));}catch(e2){}
+  throw new Error('JSON parse failed. Try again.');
+}
+
+// ── STEP NAVIGATION ────────────────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-item').forEach(t => {
+    t.classList.remove('active');
+    if (parseInt(t.id.split('-')[2]) < n) t.classList.add('done-step');
+  });
+  document.getElementById('panel-' + n).classList.add('active');
+  document.getElementById('step-tab-' + n).classList.add('active');
+  window.scrollTo({ top: document.querySelector('.step-bar').offsetTop - 10, behavior: 'smooth' });
+
+  // Auto-render step 3 decisions when navigating there
+  if (n === 3) renderDecisions();
+  if (n === 5) {} // handled by button
+}
+
+// ── API CALL ───────────────────────────────────────────────────────────────
+async function callClaude(systemPrompt, userMsg) {
+  const response = await fetch("http://localhost:3000/api/claude", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMsg }]
+    })
+  });
+  if (!response.ok) throw new Error(`API ${response.status}`);
+  const data = await response.json();
+  return data.content.map(b => b.text||'').join('');
+}
+
+// ── STEP 1: LLM THEORETICAL DESIGN ────────────────────────────────────────
+async function runStep1() {
+  const btn = document.getElementById('btn-step1');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span> LLM Reasoning...';
+
+  const intent = document.getElementById('dev-intent').value;
+  const prompt = `You are a senior architect reasoning aloud about a new module design request. 
+
+Project: React e-commerce app with Supabase (auth + DB) and Razorpay (payments).
+Existing blueprint modules: Auth, Dashboard, Payment/Subscription, Data Layer, API Client.
+Developer request: "${intent}"
+
+Output ONLY valid JSON, no markdown:
+{
+  "reasoning": [
+    { "label": "UNDERSTANDING", "text": "what you understand about the request and project context" },
+    { "label": "ASSUMPTION CHECK", "text": "what the blueprint must have for this to work — be specific about AuthGuard, hooks, types" },
+    { "label": "DESIGN APPROACH", "text": "how you would structure admin given the existing modules" },
+    { "label": "DEPENDENCY ORDER", "text": "what must exist before admin can be built" }
+  ],
+  "proposedModules": [
+    {
+      "name": "module name",
+      "files": ["file1.tsx", "file2.tsx"],
+      "assumes": "what existing code this depends on"
+    }
+  ],
+  "theoreticalDependencies": ["list of things this design assumes already exist in the codebase"]
+}
+Keep all strings under 200 chars.`;
+
+  try {
+    const raw = await callClaude(prompt, "Generate the theoretical design now. Output ONLY the JSON.");
+    llmTheoryData = repairJSON(raw);
+    renderStep1(llmTheoryData);
+    document.getElementById('output-step1').style.display = 'block';
+  } catch(e) { alert('Step 1 failed: ' + e.message); }
+
+  btn.disabled = false; btn.innerHTML = '<span>↺</span> Regenerate';
+}
+
+function renderStep1(data) {
+  const reasoning = document.getElementById('llm-reasoning');
+  reasoning.innerHTML = (data.reasoning||[]).map(r => `
+    <div class="thought">
+      <div class="t-label">${r.label}</div>
+      <div class="t-text">${formatThought(r.text)}</div>
+    </div>`).join('');
+
+  const modules = document.getElementById('llm-modules');
+  modules.innerHTML = `
+    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;margin-top:16px;text-transform:uppercase;">Proposed Admin Modules</div>
+    <div class="module-grid">
+      ${(data.proposedModules||[]).map(m => `
+        <div class="module-card">
+          <div class="mc-name">◆ ${m.name}</div>
+          <div class="mc-files">${(m.files||[]).map(f=>`<div class="mc-file">${f}</div>`).join('')}</div>
+          ${m.assumes ? `<div class="mc-assumes">${m.assumes}</div>` : ''}
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:16px;padding:12px 14px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.15);border-radius:6px;">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--warn);margin-bottom:8px;">THEORETICAL DEPENDENCIES — AGENT WILL NOW CHECK IF THESE EXIST</div>
+      ${(data.theoreticalDependencies||[]).map(d=>`<div style="font-size:11px;color:#aa8833;margin-bottom:4px;display:flex;gap:6px;"><span>→</span>${d}</div>`).join('')}
+    </div>`;
+}
+
+function formatThought(text) {
+  return text
+    .replace(/AuthGuard/g, '<strong class="hi-danger">AuthGuard</strong>')
+    .replace(/useSubscription|usePayment/g, m => `<strong class="hi-warn">${m}</strong>`)
+    .replace(/types\//g, '<strong class="hi-warn">types/</strong>')
+    .replace(/Admin/g, '<strong class="hi-llm">Admin</strong>')
+    .replace(/TypeScript/g, '<strong>TypeScript</strong>');
+}
+
+// ── STEP 2: AGENT GAP REPORT ───────────────────────────────────────────────
+async function runStep2() {
+  const btn = document.getElementById('btn-step2');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Agent Scanning...';
+
+  const deps = llmTheoryData?.theoreticalDependencies || [];
+  const prompt = `You are an AI agent that has read the actual codebase. You must compare the LLM's theoretical design against what actually exists.
+
+LLM theoretical design assumed these dependencies exist: ${JSON.stringify(deps)}
+
+Actual codebase reality:
+- EXISTS: ${DRIFTED_CODEBASE.existing.join(', ')}  
+- MISSING from blueprint: ${DRIFTED_CODEBASE.missing.join(', ')}
+- DRIFT: Auth/ renamed to auth/, Subscription/ renamed to payments/, services/ renamed to utils/ with .js files
+
+Output ONLY valid JSON:
+{
+  "summary": "one sentence summary of the gap situation",
+  "blockers": [
+    { "gap": "gap name", "assumed": "what LLM assumed exists", "reality": "what actually exists", "impact": "why this blocks Admin specifically" }
+  ],
+  "warnings": [
+    { "gap": "gap name", "reality": "what exists", "impact": "risk if not fixed" }
+  ],
+  "acceptable": [
+    { "gap": "gap name", "reason": "why this is not a blocker" }
+  ]
+}
+Be specific and reference actual filenames. Keep strings under 180 chars.`;
+
+  try {
+    const raw = await callClaude(prompt, "Generate the gap report. Output ONLY the JSON.");
+    const data = repairJSON(raw);
+    renderStep2(data);
+    document.getElementById('output-step2').style.display = 'block';
+  } catch(e) { alert('Step 2 failed: ' + e.message); }
+
+  btn.disabled = false; btn.innerHTML = '<span>↺</span> Re-analyse';
+}
+
+function renderStep2(data) {
+  const el = document.getElementById('agent-gap-report');
+  let html = '';
+
+  if (data.summary) {
+    html += `<div class="status-row status-agent" style="margin-bottom:16px;">${data.summary}</div>`;
+  }
+
+  if ((data.blockers||[]).length) {
+    html += `<div style="font-size:9px;letter-spacing:2px;color:var(--danger);margin-bottom:10px;text-transform:uppercase;">🔴 Blockers — Admin Cannot Be Built Until These Are Resolved</div>
+    <div class="gap-list">`;
+    data.blockers.forEach(b => {
+      html += `<div class="gap-item gap-blocker">
+        <span class="gap-badge badge-blocker">BLOCKER</span>
+        <div class="gap-content">
+          <div class="gap-what">${b.gap}</div>
+          <div class="gap-why">Assumed: <em>${b.assumed}</em> → Reality: <strong>${b.reality}</strong></div>
+          <div class="gap-why" style="margin-top:4px;color:var(--danger);opacity:0.8;">Impact: ${b.impact}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if ((data.warnings||[]).length) {
+    html += `<div style="font-size:9px;letter-spacing:2px;color:var(--warn);margin:16px 0 10px;text-transform:uppercase;">🟡 Warnings — Risk if Not Addressed</div>
+    <div class="gap-list">`;
+    data.warnings.forEach(w => {
+      html += `<div class="gap-item gap-warning">
+        <span class="gap-badge badge-warning">WARNING</span>
+        <div class="gap-content">
+          <div class="gap-what">${w.gap}</div>
+          <div class="gap-why">${w.reality}</div>
+          <div class="gap-why" style="margin-top:4px;color:var(--warn);opacity:0.8;">${w.impact}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if ((data.acceptable||[]).length) {
+    html += `<div style="font-size:9px;letter-spacing:2px;color:var(--info);margin:16px 0 10px;text-transform:uppercase;">🔵 Acceptable Drift — No Action Required</div>
+    <div class="gap-list">`;
+    data.acceptable.forEach(a => {
+      html += `<div class="gap-item gap-info">
+        <span class="gap-badge badge-info">INFO</span>
+        <div class="gap-content">
+          <div class="gap-what">${a.gap}</div>
+          <div class="gap-why">${a.reason}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ── STEP 3: DEVELOPER DECISIONS ────────────────────────────────────────────
+function renderDecisions() {
+  const el = document.getElementById('decision-grid');
+  el.innerHTML = GAPS.map(gap => `
+    <div class="decision-item">
+      <div class="gap-ref ${gap.type === 'warning' ? 'warn-ref' : ''}">${gap.badge}<br><span style="font-size:10px;font-weight:400;">${gap.type}</span></div>
+      <div class="decision-text">
+        <strong>${gap.what}</strong>
+        ${gap.why}
+        <div class="decision-btns">
+          <button class="d-btn d-fix" id="fix-${gap.id}" onclick="setDecision('${gap.id}','fix')">✓ Fix Before Admin</button>
+          <button class="d-btn d-accept" id="accept-${gap.id}" onclick="setDecision('${gap.id}','accept')">→ Accept Risk</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  // Restore previous decisions
+  Object.entries(gapDecisions).forEach(([id, dec]) => {
+    document.getElementById(`fix-${id}`)?.classList.toggle('selected-fix', dec === 'fix');
+    document.getElementById(`accept-${id}`)?.classList.toggle('selected-accept', dec === 'accept');
+  });
+}
+
+function setDecision(id, decision) {
+  gapDecisions[id] = decision;
+  const fixBtn = document.getElementById(`fix-${id}`);
+  const acceptBtn = document.getElementById(`accept-${id}`);
+  fixBtn.classList.toggle('selected-fix', decision === 'fix');
+  fixBtn.classList.toggle('d-fix', true);
+  acceptBtn.classList.toggle('selected-accept', decision === 'accept');
+}
+
+// ── STEP 4: LLM FINAL DESIGN ───────────────────────────────────────────────
+async function runStep4() {
+  const btn = document.getElementById('btn-step4');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span> LLM Designing...';
+
+  const fixes = GAPS.filter(g => gapDecisions[g.id] === 'fix').map(g => g.what);
+  const accepted = GAPS.filter(g => gapDecisions[g.id] === 'accept').map(g => g.what);
+  const undecided = GAPS.filter(g => !gapDecisions[g.id]).map(g => g.what);
+
+  const prompt = `You are a senior architect producing the FINAL Admin Dashboard design. You have three inputs: the original blueprint, the agent's gap report, and the developer's gap decisions.
+
+Developer will fix before building: ${JSON.stringify(fixes)}
+Developer accepted as risk: ${JSON.stringify(accepted)}
+Undecided gaps (treat as accepted): ${JSON.stringify(undecided)}
+
+Actual folder structure that exists: src/components/auth/, src/components/payments/, src/components/Dashboard/, src/hooks/useAuth.ts, src/utils/supabase.js, src/utils/razorpay.js
+
+Output ONLY valid JSON:
+{
+  "designNote": "one sentence on how reality shaped this design vs the theoretical version",
+  "remediationFirst": [
+    { "task": "what to build/fix", "file": "exact file path", "reason": "why this must come before Admin", "priority": 1 }
+  ],
+  "adminModules": [
+    {
+      "name": "module name",
+      "path": "src/components/Admin/ModuleName/",
+      "files": [{ "file": "filename.tsx", "purpose": "what it does", "uses": "existing code it imports" }],
+      "designDecision": "key architectural choice made for this module"
+    }
+  ],
+  "acceptedRisks": [
+    { "risk": "risk name", "mitigation": "what to watch for" }
+  ],
+  "tradeoffs": [
+    { "decision": "decision made", "why": "reasoning", "alternative": "what was not chosen" }
+  ]
+}
+Keep strings under 200 chars. Be specific about file paths using the actual existing structure.`;
+
+  try {
+    const raw = await callClaude(prompt, "Generate the final design. Output ONLY the JSON.");
+    finalDesignData = repairJSON(raw);
+    renderStep4(finalDesignData);
+    document.getElementById('output-step4').style.display = 'block';
+  } catch(e) { alert('Step 4 failed: ' + e.message); }
+
+  btn.disabled = false; btn.innerHTML = '<span>↺</span> Regenerate';
+}
+
+function renderStep4(data) {
+  const el = document.getElementById('final-design-body');
+  let html = '';
+
+  if (data.designNote) {
+    html += `<div class="status-row status-llm" style="margin-bottom:20px;font-style:italic;">"${data.designNote}"</div>`;
+  }
+
+  if ((data.remediationFirst||[]).length) {
+    html += `<div class="final-section">
+      <div class="final-title" style="color:var(--warn);">Part A — Remediation (Before Admin)</div>
+      <div class="task-list">
+        ${data.remediationFirst.sort((a,b)=>a.priority-b.priority).map((t,i) => `
+          <div class="task-item">
+            <span class="task-num">${String(i+1).padStart(2,'0')}.</span>
+            <span class="task-file">${t.file}</span>
+            <span style="font-size:10px;color:var(--muted2);flex:1;">${t.task}</span>
+            <span class="task-action fix">FIX</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  if ((data.adminModules||[]).length) {
+    html += `<div class="final-section">
+      <div class="final-title" style="color:var(--llm);">Part B — Admin Dashboard Modules</div>
+      ${data.adminModules.map(m => `
+        <div class="decision-card" style="margin-bottom:12px;">
+          <div class="dc-title">◆ ${m.name}</div>
+          <div class="dc-row"><span class="dc-label">Path</span><span class="dc-val"><span class="good">${m.path}</span></span></div>
+          <div class="dc-row"><span class="dc-label">Files</span><div class="dc-val">
+            ${(m.files||[]).map(f=>`<div style="margin-bottom:6px;"><span style="color:var(--info)">${f.file}</span> — ${f.purpose}${f.uses?`<br><span style="font-size:10px;color:var(--muted);">uses: ${f.uses}</span>`:''}</div>`).join('')}
+          </div></div>
+          ${m.designDecision?`<div class="dc-row"><span class="dc-label">Decision</span><span class="dc-val warn">${m.designDecision}</span></div>`:''}
+        </div>`).join('')}
+    </div>`;
+  }
+
+  if ((data.acceptedRisks||[]).length) {
+    html += `<div class="final-section">
+      <div class="final-title" style="color:var(--warn);">Accepted Risks — Monitor These</div>
+      ${data.acceptedRisks.map(r => `
+        <div style="padding:10px 14px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);border-radius:6px;margin-bottom:8px;font-size:11px;">
+          <div style="color:var(--warn);font-weight:700;margin-bottom:4px;">⚠ ${r.risk}</div>
+          <div style="color:var(--muted2);">Watch for: ${r.mitigation}</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  if ((data.tradeoffs||[]).length) {
+    html += `<div class="final-section">
+      <div class="final-title">Design Tradeoffs</div>
+      ${data.tradeoffs.map(t => `
+        <div class="decision-card" style="border-left-color:var(--info);margin-bottom:8px;">
+          <div class="dc-row"><span class="dc-label">Decision</span><span class="dc-val"><strong>${t.decision}</strong></span></div>
+          <div class="dc-row"><span class="dc-label">Why</span><span class="dc-val good">${t.why}</span></div>
+          <div class="dc-row"><span class="dc-label">Not chosen</span><span class="dc-val warn">${t.alternative}</span></div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ── STEP 5: EXECUTION PACKAGE ──────────────────────────────────────────────
+async function runStep5() {
+  const btn = document.getElementById('btn-step5');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Building Package...';
+
+  const fixes = GAPS.filter(g => gapDecisions[g.id] === 'fix');
+  const remediation = finalDesignData?.remediationFirst || [];
+  const adminModules = finalDesignData?.adminModules || [];
+
+  const partA = remediation.map((t,i) => ({
+    step: i+1, file: t.file, action: 'CREATE/FIX', reason: t.reason
+  }));
+
+  const partB = adminModules.flatMap(m =>
+    (m.files||[]).map((f,i) => ({
+      step: i+1, file: m.path + f.file, action: 'CREATE',
+      purpose: f.purpose, module: m.name
+    }))
+  );
+
+  const pkg = {
+    _meta: {
+      stage: "Stage 3 — Module Addition Execution Package",
+      generatedAt: new Date().toISOString(),
+      module: "Admin Dashboard",
+      project: "React E-Commerce + Supabase + Razorpay",
+      instruction: "Execute Part A completely and verify before starting Part B. Do not create files not listed here."
+    },
+    gapDecisions: gapDecisions,
+    partA_remediation: partA,
+    partB_adminBuild: partB,
+    acceptedRisks: finalDesignData?.acceptedRisks || []
+  };
+
+  const pkgStr = JSON.stringify(pkg, null, 2);
+
+  const el = document.getElementById('output-step5');
+  el.innerHTML = `
+    <div class="exec-pkg">
+      <div class="exec-pkg-hdr">
+        <span class="exec-badge">STAGE 3 PKG</span>
+        <div class="exec-desc">
+          <strong>Complete agent handover.</strong> Part A: ${partA.length} remediation tasks. Part B: ${partB.length} Admin files to create. Agent executes A → B in sequence.
+        </div>
+      </div>
+
+      <div class="part-block">
+        <div class="part-label part-a">Part A — Remediation First</div>
+        <div class="task-list">
+          ${partA.map(t => `
+            <div class="task-item">
+              <span class="task-num">${String(t.step).padStart(2,'0')}.</span>
+              <span class="task-file">${t.file}</span>
+              <span style="font-size:10px;color:var(--muted2);flex:1;">${t.reason||''}</span>
+              <span class="task-action fix">FIX</span>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="part-block">
+        <div class="part-label part-b">Part B — Admin Dashboard Build</div>
+        <div class="task-list">
+          ${partB.map(t => `
+            <div class="task-item">
+              <span class="task-num">${String(t.step).padStart(2,'0')}.</span>
+              <span class="task-file">${t.file}</span>
+              <span style="font-size:10px;color:var(--muted2);flex:1;">${t.purpose||''}</span>
+              <span class="task-action create">CREATE</span>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="part-block">
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-name">agent-module-package.json</span>
+            <button class="copy-btn" onclick="copyPkg(${JSON.stringify(pkgStr).replace(/</g,'&lt;')})">⎘ copy</button>
+          </div>
+          <div class="code-body">${syntaxHL(pkg)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;padding:16px 20px;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:8px;">
+      <div style="font-size:10px;font-weight:700;color:var(--llm);letter-spacing:1px;margin-bottom:10px;">THE FLOW THAT SAVED YOU</div>
+      <div style="font-size:11px;color:var(--muted2);line-height:1.8;">
+        <div style="margin-bottom:6px;">Without this flow → Agent would have built Admin on top of missing AuthGuard, no types, duplicated hook logic. Silent failures in production.</div>
+        <div style="color:var(--dev);">✓ LLM surfaced what Admin needs → Agent found what's missing → You decided what to fix → LLM designed for reality → Agent has a clean execution path.</div>
+      </div>
+    </div>`;
+
+  document.getElementById('output-step5').style.display = 'block';
+  btn.disabled = false; btn.innerHTML = '<span>↺</span> Regenerate';
+  window._pkgStr = pkgStr;
+}
+
+function syntaxHL(obj) {
+  return JSON.stringify(obj, null, 2)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"([^"]+)"(\s*:)/g,'<span class="t-key">"$1"</span>$2')
+    .replace(/:\s*"([^"]*)"/g,': <span class="t-str">"$1"</span>')
+    .replace(/:\s*(\d+)/g,': <span class="t-num">$1</span>')
+    .replace(/(\/\/[^\n]*)/g,'<span class="t-comment">$1</span>');
+}
+
+function copyPkg() {
+  const str = window._pkgStr;
+  if (!str) return;
+  navigator.clipboard.writeText(str).then(() => {
+    event.target.textContent = '✓ copied';
+    setTimeout(() => event.target.textContent = '⎘ copy', 1800);
+  });
+}
+</script>
+</body>
+</html>
