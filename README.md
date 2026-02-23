@@ -168,7 +168,6 @@ Shows what happens when **Step 4 stays as LLM (correct)** vs **Step 4 is replace
 | Panel | What it produces |
 |-------|-----------------|
 | **LLM Final Design** (left) | Correct design — extracts shared hooks before Admin uses them, creates `types/` folder, builds `AuthGuard` from blueprint spec |
-| **Agent Final Design** (right) | Pattern-matched design — copies existing drifted code, skips or minimises remediation, duplicates logic inline, misses blueprint intent |
 
 After both panels populate, the tab also renders:
 
@@ -180,19 +179,7 @@ After both panels populate, the tab also renders:
 
 ---
 
-### Agent at Step 4 Tab (`part2-developer-discipline-agent.html`)
-
-Runs the full 5-step pipeline with Steps 1–3 pre-baked from the fixed scenario, then fires LLM and Agent **in parallel at Step 4** so you can compare the divergence side-by-side.
-
-| Step | Who runs | Output shown |
-|------|----------|--------------|
-| 1 | Static | Blueprint modules, conventions, and design decisions — the shared ground truth both paths inherit |
-| 2 | Static | Gap audit: BLOCKER items (missing files), drift detected across codebase scan |
-| 3 | Static | Developer fix/accept decisions (same fixed scenario used throughout) |
-| 4 ⚠ | **LLM + Agent in parallel** (KEY STEP) | LLM receives blueprint + gap + decisions; Agent receives codebase only — same task, different context |
-| 5 | Derived from both Step 4 outputs | Side-by-side execution packages (LLM: Part A remediation → Part B build; Agent: minimal/no Part A) + 8-row comparison table |
-
-**The key difference from the Consequences tab:** Both tabs show a parallel LLM vs Agent comparison at Steps 4–5. This tab also renders Steps 1–3 — the shared foundation both paths receive — so you can see precisely what context the Agent lacks when it reaches Step 4.
+*Note:* The interactive demo file `part2/part2-developer-discipline-agent.html` (live Consequences + Agent demo) has been removed. Use `part2/part2-developer-discipline.html` for the static Developer Discipline guide, or `part2/part2-module-design-flow.html` for the live module flow demo.
 
 ---
 
