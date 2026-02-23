@@ -1071,7 +1071,7 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
   <!-- ═══════════ AGENT AT STEP 4 ═══════════ -->
   <div class="sec" id="sec-pipeline-agent">
     <div class="sec-title" style="color:var(--agent)">What Happens When Step 4 Is Agent</div>
-    <p class="sec-sub">The same 5-step pipeline — but Step 4 is handed to the Agent instead of the LLM. Watch each step run in sequence: where does the design degrade, what gets lost, and what breaks in production as a result.</p>
+    <p class="sec-sub">Steps 1–3 are identical for both paths — static, pre-baked from the same fixed scenario. At Step 4 the pipeline forks: the LLM receives blueprint + gap + decisions while the Agent receives only the codebase. Step 5 shows the side-by-side consequences of that single difference.</p>
 
     <!-- Pipeline diagram -->
     <div class="pipeline-diagram">
@@ -1093,22 +1093,25 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
         <div class="pd-desc">Fix / accept decisions</div>
       </div>
       <div class="pd-arrow">›</div>
-      <div class="pd-step changed-step" style="border-color:rgba(248,113,113,0.4)">
-        <div class="pd-num" style="background:rgba(251,146,60,0.2);color:var(--agent);border-color:var(--agent);">4</div>
-        <div class="pd-label" style="color:var(--agent)">Agent <span class="changed-tag">CHANGED</span></div>
-        <div class="pd-desc" style="color:var(--danger)">Final design — codebase only</div>
+      <div class="pd-step changed-step" style="border-color:rgba(248,113,113,0.35);padding:10px 8px;">
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:6px;">
+          <div class="pd-num" style="background:rgba(167,139,250,0.12);color:var(--llm);border-color:rgba(167,139,250,0.3);width:22px;height:22px;font-size:9px;">4a</div>
+          <div class="pd-num" style="background:rgba(251,146,60,0.2);color:var(--agent);border-color:var(--agent);width:22px;height:22px;font-size:9px;">4b</div>
+        </div>
+        <div class="pd-label"><span style="color:var(--llm)">LLM</span> <span style="color:var(--muted)">vs</span> <span style="color:var(--agent)">Agent</span> <span class="changed-tag">KEY STEP</span></div>
+        <div class="pd-desc" style="color:var(--danger)">Same input — different context</div>
       </div>
       <div class="pd-arrow">›</div>
-      <div class="pd-step" style="border-color:rgba(251,146,60,0.3)">
-        <div class="pd-num" style="background:rgba(251,146,60,0.12);color:var(--agent);border-color:rgba(251,146,60,0.3);">5</div>
-        <div class="pd-label" style="color:var(--agent)">Agent</div>
-        <div class="pd-desc">Executes Step 4 output</div>
+      <div class="pd-step" style="border-color:rgba(56,189,248,0.3)">
+        <div class="pd-num" style="background:rgba(56,189,248,0.12);color:var(--info);border-color:rgba(56,189,248,0.3);">5</div>
+        <div class="pd-label" style="color:var(--info)">Compare</div>
+        <div class="pd-desc">LLM vs Agent — side by side</div>
       </div>
     </div>
 
     <button class="run-compare-btn" id="btn-pipeline" onclick="runPipeline()">
       <span class="loader" style="width:12px;height:12px;border-color:rgba(255,255,255,0.2);border-top-color:#fff;display:none;" id="pipeline-loader"></span>
-      <span id="pipeline-btn-text">▶ Run Pipeline — Agent at Step 4</span>
+      <span id="pipeline-btn-text">▶ Run Comparison — Step 4 LLM vs Agent</span>
     </button>
 
     <!-- Steps container — JS populates this -->
@@ -1169,67 +1172,36 @@ async function runPipeline() {
   const container = document.getElementById('pa-steps');
   btn.disabled = true; loader.style.display = 'inline-block';
   container.innerHTML = '';
+  document.getElementById('pa-capstone').style.display = 'none';
 
   const setStatus = t => { btnText.textContent = t; };
 
-  // ── STEP 1: LLM theoretical design ────────────────────────────────────────
-  setStatus('Step 1 — LLM designing theoretically...');
-  let step1;
-  try {
-    const s1sys = `You are a senior architect with full knowledge of the original project blueprint.
-Blueprint: ${JSON.stringify(SCENARIO.blueprint)}
-Do NOT look at the real codebase yet. Design the Admin Dashboard theoretically against the original blueprint.
-Output ONLY valid JSON:
-{
-  "approach": "2 sentence description",
-  "modules": [{"name":"module","files":["file.tsx"],"purpose":"what it does"}],
-  "assumptions": ["what you assume exists per blueprint"]
-}`;
-    step1 = repairJSON(await callClaude(s1sys, 'Generate the theoretical design. Output ONLY JSON.'));
-  } catch(e) { step1 = { approach: 'LLM call failed: ' + e.message, modules: [], assumptions: [] }; }
-
+  // ── STEP 1: LLM theoretical design (STATIC) ─────────────────────────────────
   const s1body = `
-    <div style="margin-bottom:10px;color:var(--muted2);">${step1.approach||''}</div>
-    <div style="font-size:9px;letter-spacing:2px;color:var(--llm);text-transform:uppercase;margin-bottom:6px;">Modules designed</div>
-    ${(step1.modules||[]).map(m => `<div style="padding:5px 10px;background:var(--card2);border-radius:4px;margin-bottom:3px;">
-      <span style="color:var(--llm);font-weight:700;">${m.name}</span>
-      <span style="color:var(--muted);font-size:10px;margin-left:8px;">${(m.files||[]).join(', ')}</span>
-    </div>`).join('')}
-    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:10px 0 6px;">Blueprint assumptions</div>
-    ${(step1.assumptions||[]).map(a => `<div style="font-size:10px;color:var(--muted2);padding:2px 0;">• ${a}</div>`).join('')}
-    <div class="pa-good">✓ LLM reasoned from blueprint intent. AuthGuard, hooks, and types/ all assumed present because the blueprint requires them.</div>`;
-  container.innerHTML += paStep(1, 'LLM', 'var(--llm)', 'Theoretical Design', s1body, 'Blueprint context', false);
+    <div style="margin-bottom:10px;color:var(--muted2);">Designing Admin Dashboard purely from the original blueprint — no codebase inspection yet. AuthGuard, shared hooks, and types/ are all assumed present because the blueprint requires them.</div>
+    <div style="font-size:9px;letter-spacing:2px;color:var(--llm);text-transform:uppercase;margin-bottom:6px;">Blueprint modules</div>
+    ${SCENARIO.blueprint.modules.map(m => `<div style="padding:5px 10px;background:var(--card2);border-radius:4px;margin-bottom:3px;font-size:11px;color:var(--llm);">${m}</div>`).join('')}
+    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:10px 0 6px;">Conventions assumed</div>
+    <div style="font-size:10px;color:var(--muted2);padding:6px 10px;background:var(--card2);border-radius:4px;">${SCENARIO.blueprint.conventions}</div>
+    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:10px 0 6px;">Design decisions</div>
+    ${SCENARIO.blueprint.decisions.map(d => `<div style="font-size:10px;color:var(--muted2);padding:2px 0;">• ${d}</div>`).join('')}
+    <div class="pa-good">✓ LLM reasoned from blueprint intent. All required foundations (AuthGuard, hooks, types/) assumed present per the original design.</div>`;
+  container.innerHTML += paStep(1, 'LLM', 'var(--llm)', 'Theoretical Design', s1body, 'Static — Blueprint context', false);
 
-  // ── STEP 2: Agent gap audit ────────────────────────────────────────────────
-  setStatus('Step 2 — Agent auditing real codebase...');
-  let step2;
-  try {
-    const s2sys = `You are an AI coding agent. Audit the real codebase against the theoretical design.
-Real codebase: ${SCENARIO.driftedCodebase.exists.join(', ')}
-Theoretical design requires: ${JSON.stringify(step1.assumptions||[])}
-Output ONLY valid JSON:
-{
-  "gaps": [{"item":"what is missing","severity":"BLOCKER|WARNING|INFO","impact":"what breaks without it"}],
-  "drift": ["naming or structure differences found"]
-}`;
-    step2 = repairJSON(await callClaude(s2sys, 'Generate the gap report. Output ONLY JSON.'));
-  } catch(e) { step2 = { gaps: [], drift: [] }; }
-
+  // ── STEP 2: Agent gap audit (STATIC) ────────────────────────────────────────
   const s2body = `
-    <div style="font-size:9px;letter-spacing:2px;color:var(--danger);text-transform:uppercase;margin-bottom:8px;">Gaps found</div>
-    ${(step2.gaps||[]).map(g => {
-      const col = g.severity==='BLOCKER' ? 'var(--danger)' : g.severity==='WARNING' ? 'var(--warn)' : 'var(--muted2)';
-      return `<div style="display:flex;gap:10px;padding:6px 10px;background:var(--card2);border-radius:4px;margin-bottom:4px;align-items:flex-start;">
-        <span style="font-size:9px;font-weight:700;color:${col};min-width:56px;padding-top:1px;">${g.severity}</span>
-        <span style="flex:1;color:var(--text);">${g.item}</span>
-        <span style="font-size:10px;color:var(--muted);">${g.impact||''}</span>
-      </div>`;
-    }).join('')}
-    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:10px 0 6px;">Drift detected</div>
-    ${(step2.drift||[]).map(d => `<div style="font-size:10px;color:var(--warn);padding:2px 0;">~ ${d}</div>`).join('')}`;
-  container.innerHTML += paStep(2, 'Agent', 'var(--agent)', 'Gap Audit', s2body, 'Codebase scan', false);
+    <div style="font-size:9px;letter-spacing:2px;color:var(--danger);text-transform:uppercase;margin-bottom:8px;">Blockers found</div>
+    ${SCENARIO.driftedCodebase.missing.map(m => `<div style="display:flex;gap:10px;padding:6px 10px;background:var(--card2);border-radius:4px;margin-bottom:4px;align-items:center;">
+      <span style="font-size:9px;font-weight:700;color:var(--danger);min-width:56px;">BLOCKER</span>
+      <span style="flex:1;color:var(--text);">${m}</span>
+    </div>`).join('')}
+    <div style="font-size:9px;letter-spacing:2px;color:var(--warn);text-transform:uppercase;margin:10px 0 6px;">Drift detected</div>
+    ${SCENARIO.driftedCodebase.drift.map(d => `<div style="font-size:10px;color:var(--warn);padding:2px 0;">~ ${d}</div>`).join('')}
+    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:10px 0 6px;">Existing files scanned</div>
+    <div style="font-size:10px;color:var(--muted2);line-height:1.8;">${SCENARIO.driftedCodebase.exists.join(', ')}</div>`;
+  container.innerHTML += paStep(2, 'Agent', 'var(--agent)', 'Gap Audit', s2body, 'Static — Codebase scan', false);
 
-  // ── STEP 3: Developer decisions (static — same fixed scenario) ─────────────
+  // ── STEP 3: Developer decisions (STATIC) ──────────────────────────────────────
   const s3body = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div>
@@ -1241,90 +1213,138 @@ Output ONLY valid JSON:
         ${SCENARIO.devDecisions.accept.map(d => `<div style="padding:5px 10px;background:var(--warn-dim);border-radius:4px;margin-bottom:3px;font-size:11px;color:var(--warn);">~ ${d}</div>`).join('')}
       </div>
     </div>
-    <div class="pa-good" style="margin-top:12px;">✓ Developer has made explicit fix/accept decisions. These would now be handed to the LLM for a final design. <strong style="color:var(--danger)">But in this pipeline — they go to the Agent instead.</strong></div>`;
-  container.innerHTML += paStep(3, 'Developer', 'var(--dev)', 'Gap Decisions', s3body, 'Fix / Accept', false);
+    <div class="pa-good" style="margin-top:12px;">✓ Explicit fix/accept decisions made. Both Step 4 paths receive the same decisions — but the LLM also receives the blueprint context. The Agent does not. That single difference is what this tab demonstrates.</div>`;
+  container.innerHTML += paStep(3, 'Developer', 'var(--dev)', 'Gap Decisions', s3body, 'Static — Fix / Accept', false);
 
-  // ── STEP 4: AGENT final design (the changed step) ─────────────────────────
-  setStatus('Step 4 — Agent producing final design (codebase only)...');
-  let step4;
-  try {
-    const s4sys = `You are an AI coding agent. You do NOT have the original blueprint. You only see the codebase.
-Actual files: ${SCENARIO.driftedCodebase.exists.join(', ')}
-Missing files noticed: ${SCENARIO.driftedCodebase.missing.join(', ')}
-Developer said fix: ${SCENARIO.devDecisions.fix.join(', ')} | accept: ${SCENARIO.devDecisions.accept.join(', ')}
-Task: ${SCENARIO.request}
+  // ── STEP 1: LLM theoretical design ────────────────────────────────────────
+  // ── STEP 4: Run LLM and Agent IN PARALLEL ──────────────────────────────────────
+  setStatus('Step 4 — LLM and Agent running in parallel...');
 
-You build from what exists. You follow existing patterns.
+  container.innerHTML += `<div class="pa-output step-changed">
+    <div class="pa-output-hdr" style="background:rgba(248,113,113,0.06);color:var(--danger);border-bottom-color:rgba(248,113,113,0.15);">
+      <span style="width:22px;height:22px;border-radius:50%;background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">4</span>
+      <span>Final Design — <span style="color:var(--llm)">LLM</span> vs <span style="color:var(--agent)">Agent</span></span>
+      <span class="pa-badge changed">KEY STEP</span>
+    </div>
+    <div class="pa-output-body">
+      <div style="padding:8px 12px;background:var(--danger-dim);border:1px solid rgba(248,113,113,0.2);border-radius:6px;margin-bottom:16px;font-size:11px;color:var(--danger);">
+        ⚠ Both receive the same gap report and developer decisions. The LLM also receives the original blueprint. The Agent does not. Watch what each produces.
+      </div>
+      <div class="compare-grid">
+        <div class="cg-col llm-col">
+          <div class="cg-hdr"><span>◆ LLM Final Design</span><span class="step-badge">Blueprint + gap + decisions</span></div>
+          <div class="cg-body" id="pa-llm-design-out"><div class="cg-loading"><span class="loader" style="color:var(--llm)"></span><span>LLM reasoning...</span></div></div>
+        </div>
+        <div class="cg-col agent-col">
+          <div class="cg-hdr"><span>◆ Agent Final Design</span><span class="step-badge">Codebase only</span></div>
+          <div class="cg-body" id="pa-agent-design-out"><div class="cg-loading"><span class="loader" style="color:var(--agent)"></span><span>Agent scanning codebase...</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  const llmSystem = `You are a senior architect with full knowledge of the original project blueprint.
+Blueprint: ${JSON.stringify(SCENARIO.blueprint)}
+Drifted codebase: ${JSON.stringify(SCENARIO.driftedCodebase)}
+Developer gap decisions — FIX: ${SCENARIO.devDecisions.fix.join(', ')} | ACCEPT: ${SCENARIO.devDecisions.accept.join(', ')}
+Request: "${SCENARIO.request}"
+
+You know WHY the original design made every choice. Design the Admin Dashboard correctly — extract shared hooks before Admin uses them, create types/ folder before Admin types, build AuthGuard from design spec before Admin routes.
+
 Output ONLY valid JSON:
 {
-  "approach": "2 sentence description of how you approach this",
-  "remediationFirst": [{"file":"path","action":"CREATE","reason":"why"}],
-  "adminFiles": [{"file":"path","purpose":"what it does","uses":"what it copies or imports from"}],
-  "keyDecisions": [{"decision":"what","why":"pattern-based reasoning","risk":"what this misses from original intent"}]
+  "approach": "2 sentence description of your design approach referencing blueprint intent",
+  "remediationFirst": [
+    {"step":1,"file":"exact/path/file.tsx","action":"CREATE","reason":"why this must exist before Admin"}
+  ],
+  "adminFiles": [
+    {"file":"src/components/Admin/filename.tsx","purpose":"what it does","uses":"existing files it imports"}
+  ],
+  "keyDecisions": [
+    {"decision":"what you decided","why":"reason grounded in blueprint intent","avoids":"what problem this prevents"}
+  ]
 }`;
-    step4 = repairJSON(await callClaude(s4sys, 'Generate the final design from the codebase. Output ONLY JSON.'));
-  } catch(e) { step4 = { approach: 'Agent call failed: ' + e.message, remediationFirst: [], adminFiles: [], keyDecisions: [] }; }
 
-  const s4body = `
-    <div style="padding:8px 12px;background:var(--danger-dim);border:1px solid rgba(248,113,113,0.2);border-radius:6px;margin-bottom:14px;font-size:11px;color:var(--danger);">
-      ⚠ Step 4 is now the Agent — no blueprint context, no original intent. It can only pattern-match against the drifted codebase.
+  const agentSystem = `You are an AI coding agent. You have access to the actual codebase only — no design documents, no original blueprint.
+Actual codebase files: ${SCENARIO.driftedCodebase.exists.join(', ')}
+Missing files you noticed: ${SCENARIO.driftedCodebase.missing.join(', ')}
+Developer said to fix: ${SCENARIO.devDecisions.fix.join(', ')} and accept: ${SCENARIO.devDecisions.accept.join(', ')}
+Task: Build Admin Dashboard with user management, subscription overview, payment history.
+
+You work from what exists. You follow existing patterns in the codebase. You build what you can see.
+
+Output ONLY valid JSON:
+{
+  "approach": "2 sentence description of how you approach this from the codebase",
+  "remediationFirst": [
+    {"step":1,"file":"exact/path/file.tsx","action":"CREATE","reason":"why"}
+  ],
+  "adminFiles": [
+    {"file":"src/components/Admin/filename.tsx","purpose":"what it does","uses":"existing files or inline logic"}
+  ],
+  "keyDecisions": [
+    {"decision":"what you decided","why":"reason based on existing code patterns","avoids":"what you tried to avoid"}
+  ]
+}`;
+
+  let llmResult = null, agentResult = null;
+  try {
+    [llmResult, agentResult] = await Promise.all([
+      callClaude(llmSystem, 'Generate the Final Design. Output ONLY the JSON.').then(r => repairJSON(r)),
+      callClaude(agentSystem, 'Generate the Final Design from the codebase. Output ONLY the JSON.').then(r => repairJSON(r))
+    ]);
+  } catch(e) {
+    document.getElementById('pa-llm-design-out').innerHTML = `<div style="color:var(--danger)">Failed: ${e.message}</div>`;
+    document.getElementById('pa-agent-design-out').innerHTML = `<div style="color:var(--danger)">Failed: ${e.message}</div>`;
+    btn.disabled = false; loader.style.display = 'none'; btnText.textContent = '↺ Retry';
+    return;
+  }
+
+  renderDesign('pa-llm-design-out', llmResult, 'llm');
+  renderDesign('pa-agent-design-out', agentResult, 'agent');
+
+  // ── STEP 5: Execution packages + comparison table (side-by-side) ──────────────
+  setStatus('Step 5 — Building comparison...');
+
+  container.innerHTML += `<div class="pa-output">
+    <div class="pa-output-hdr" style="background:rgba(56,189,248,0.06);color:var(--info);border-bottom-color:rgba(56,189,248,0.15);">
+      <span style="width:22px;height:22px;border-radius:50%;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">5</span>
+      <span>Execution Package — LLM vs Agent</span>
+      <span class="pa-badge" style="background:rgba(56,189,248,0.15);color:var(--info);">Side-by-side</span>
     </div>
-    <div style="margin-bottom:12px;color:var(--muted2);">${step4.approach||''}</div>
-    <div style="font-size:9px;letter-spacing:2px;color:var(--warn);text-transform:uppercase;margin-bottom:6px;">Remediation it planned</div>
-    ${(step4.remediationFirst||[]).length
-      ? (step4.remediationFirst||[]).map(f => `<div style="display:flex;gap:8px;padding:5px 8px;background:var(--card2);border-radius:4px;margin-bottom:3px;font-size:10px;">
-          <span style="color:var(--info);flex:1;">${f.file}</span><span style="color:var(--warn);font-size:9px;">${f.action||'FIX'}</span>
-        </div>`).join('')
-      : '<div class="pa-warning">✗ Agent skipped remediation or planned minimal fixes — it cannot reason about WHY blockers matter without blueprint context.</div>'
-    }
-    <div style="font-size:9px;letter-spacing:2px;color:var(--agent);text-transform:uppercase;margin:12px 0 6px;">Admin files it will create</div>
-    ${(step4.adminFiles||[]).map(f => {
-      const risky = f.uses && (f.uses.toLowerCase().includes('inline')||f.uses.toLowerCase().includes('copy')||f.uses.toLowerCase().includes('checkout'));
-      return `<div style="padding:5px 8px;background:var(--card2);border-radius:4px;margin-bottom:3px;">
-        <div style="display:flex;gap:8px;font-size:10px;">
-          <span style="color:var(--info);flex:1;">${f.file}</span><span style="color:var(--agent);font-size:9px;">CREATE</span>
+    <div class="pa-output-body">
+      <div class="compare-grid">
+        <div class="cg-col llm-col">
+          <div class="cg-hdr"><span>◆ LLM Execution Package</span><span class="step-badge">Part A → Part B</span></div>
+          <div class="cg-body" id="pa-llm-pkg-out"></div>
         </div>
-        ${f.uses ? `<div style="font-size:10px;padding-top:2px;${risky?'color:var(--danger)':'color:var(--muted)'};">uses: ${f.uses}</div>` : ''}
-      </div>`;
-    }).join('')}
-    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:12px 0 6px;">Key decisions &amp; hidden risks</div>
-    ${(step4.keyDecisions||[]).map(d => `<div style="padding:8px 10px;background:var(--card2);border-left:2px solid var(--danger);border-radius:4px;margin-bottom:6px;">
-      <div style="font-size:11px;color:var(--agent);font-weight:700;margin-bottom:2px;">${d.decision}</div>
-      <div style="font-size:10px;color:var(--muted2);">${d.why}</div>
-      ${d.risk ? `<div style="font-size:10px;color:var(--danger);margin-top:3px;">⚠ ${d.risk}</div>` : ''}
-    </div>`).join('')}`;
-  container.innerHTML += paStep(4, 'Agent', 'var(--agent)', 'Final Design — Codebase Only', s4body, 'CHANGED STEP', true);
-
-  // ── STEP 5: Execution package derived from agent's step 4 ─────────────────
-  const rem5 = step4.remediationFirst||[];
-  const adm5 = step4.adminFiles||[];
-  const s5body = `
-    <div style="font-size:10px;color:var(--muted2);margin-bottom:12px;">
-      Executing from Agent Step 4 output: <span style="color:var(--agent);">${rem5.length} remediation task${rem5.length!==1?'s':''} + ${adm5.length} admin file${adm5.length!==1?'s':''}</span>
+        <div class="cg-col agent-col">
+          <div class="cg-hdr"><span>◆ Agent Execution Package</span><span class="step-badge">No remediation</span></div>
+          <div class="cg-body" id="pa-agent-pkg-out"></div>
+        </div>
+      </div>
+      <div style="margin-top:24px;">
+        <div style="font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+          <span>Comparison</span><span style="flex:1;height:1px;background:var(--border);display:block;"></span>
+          <span style="color:var(--llm);">LLM</span><span style="color:var(--muted)"> vs </span><span style="color:var(--agent)">Agent</span>
+        </div>
+        <div class="comp-table">
+          <div class="ct-hdr">
+            <div class="ct-hdr-cell">Metric</div>
+            <div class="ct-hdr-cell llm-h">LLM Design</div>
+            <div class="ct-hdr-cell agent-h">Agent Design</div>
+          </div>
+          <div id="pa-comp-table-rows"></div>
+        </div>
+      </div>
     </div>
-    ${rem5.length === 0
-      ? '<div class="pa-warning">✗ No remediation phase — Agent goes straight to Part B. AuthGuard, useSubscription, usePayment, types/ all unresolved. Admin will be built on a broken foundation.</div>'
-      : `<div style="font-size:9px;letter-spacing:2px;color:var(--warn);text-transform:uppercase;margin-bottom:6px;">Part A — Remediation</div>
-         ${rem5.map((f,i) => `<div style="display:flex;gap:8px;padding:5px 8px;background:var(--card2);border-radius:4px;margin-bottom:3px;font-size:10px;">
-           <span style="color:var(--muted);min-width:20px;">${String(i+1).padStart(2,'0')}.</span>
-           <span style="color:var(--warn);flex:1;">${f.file}</span><span style="color:var(--warn);font-size:9px;">FIX</span>
-         </div>`).join('')}`
-    }
-    <div style="font-size:9px;letter-spacing:2px;color:var(--agent);text-transform:uppercase;margin:10px 0 6px;">Part B — Admin Build</div>
-    ${adm5.map((f,i) => `<div style="display:flex;gap:8px;padding:5px 8px;background:var(--card2);border-radius:4px;margin-bottom:3px;font-size:10px;">
-      <span style="color:var(--muted);min-width:20px;">${String(i+1).padStart(2,'0')}.</span>
-      <span style="color:var(--info);flex:1;">${f.file||f.path||'?'}</span><span style="color:var(--agent);font-size:9px;">CREATE</span>
-    </div>`).join('')}
-    <div class="pa-warning" style="margin-top:14px;">
-      <strong style="display:block;margin-bottom:6px;">What breaks in production:</strong>
-      • Admin routes have no proper AuthGuard — any user can access admin pages<br>
-      • Payment logic is duplicated inline instead of shared via usePayment/useSubscription hooks — bugs fixed in one place won't propagate<br>
-      • No shared types/ — Admin and Subscription use incompatible type assumptions silently<br>
-      • Agent followed existing drift patterns (lowercase auth/, .js utils) — new module inherits all existing inconsistencies
-    </div>`;
-  container.innerHTML += paStep(5, 'Agent', 'var(--agent)', 'Execution Package', s5body, 'Executes Step 4', false);
+  </div>`;
 
-  // Reveal the capstone learning summary
+  renderPackage('pa-llm-pkg-out', llmResult, 'llm');
+  renderPackage('pa-agent-pkg-out', agentResult, 'agent');
+  renderCompTable(llmResult, agentResult, 'pa-comp-table-rows');
+
+  // Reveal capstone
   document.getElementById('pa-capstone').style.display = 'block';
   document.getElementById('pa-capstone').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -1576,7 +1596,7 @@ function renderPackage(elId, data, mode) {
   el.innerHTML = html;
 }
 
-function renderCompTable(llm, agent) {
+function renderCompTable(llm, agent, elId='comp-table-rows') {
   const llmRem   = (llm?.remediationFirst||[]).length;
   const agentRem = (agent?.remediationFirst||[]).length;
   const llmFiles  = (llm?.adminFiles||[]).length;
@@ -1601,7 +1621,7 @@ function renderCompTable(llm, agent) {
     { metric:'Estimated extra debug cycles', sub:'Before stable production', llm:'0', llmClass:'good', agent:'4–6 cycles', agentClass:'bad' },
   ];
 
-  document.getElementById('comp-table-rows').innerHTML = rows.map(r => `
+  document.getElementById(elId).innerHTML = rows.map(r => `
     <div class="ct-row">
       <div class="ct-metric">${r.metric}<small>${r.sub}</small></div>
       <div class="ct-val ${r.llmClass}">${r.llm}</div>
