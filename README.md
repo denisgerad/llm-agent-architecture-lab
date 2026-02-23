@@ -182,17 +182,17 @@ After both panels populate, the tab also renders:
 
 ### Agent at Step 4 Tab (`part2-developer-discipline-agent.html`)
 
-Runs the full 5-step pipeline **sequentially** with the Agent substituted at Step 4 instead of the LLM. Each step's output renders in order so you can follow exactly where the design degrades.
+Runs the full 5-step pipeline with Steps 1–3 pre-baked from the fixed scenario, then fires LLM and Agent **in parallel at Step 4** so you can compare the divergence side-by-side.
 
 | Step | Who runs | Output shown |
 |------|----------|--------------|
-| 1 | Live Claude call — LLM | Theoretical design from blueprint: modules, file list, blueprint assumptions |
-| 2 | Live Claude call — Agent | Gap audit: BLOCKERs, WARNINGs, drift detected (codebase vs theory) |
-| 3 | Static display | Developer fix/accept decisions (same fixed scenario used throughout) |
-| 4 ⚠ | Live Claude call — **Agent** (changed) | Final design from codebase only — risky decisions highlighted red, missing remediation flagged |
-| 5 | Derived from Step 4 output | Execution package showing what actually gets built, with a fixed callout listing what breaks in production (auth bypass, duplicated hooks, missing types, inherited drift) |
+| 1 | Static | Blueprint modules, conventions, and design decisions — the shared ground truth both paths inherit |
+| 2 | Static | Gap audit: BLOCKER items (missing files), drift detected across codebase scan |
+| 3 | Static | Developer fix/accept decisions (same fixed scenario used throughout) |
+| 4 ⚠ | **LLM + Agent in parallel** (KEY STEP) | LLM receives blueprint + gap + decisions; Agent receives codebase only — same task, different context |
+| 5 | Derived from both Step 4 outputs | Side-by-side execution packages (LLM: Part A remediation → Part B build; Agent: minimal/no Part A) + 8-row comparison table |
 
-**The key difference from the Consequences tab:** Consequences shows Steps 4–5 as a parallel LLM vs Agent side-by-side. This tab runs the *full pipeline sequentially* — Steps 1–3 are correct, then Step 4 hands off to the Agent and you see the cascade of degradation through to Step 5.
+**The key difference from the Consequences tab:** Both tabs show a parallel LLM vs Agent comparison at Steps 4–5. This tab also renders Steps 1–3 — the shared foundation both paths receive — so you can see precisely what context the Agent lacks when it reaches Step 4.
 
 ---
 
