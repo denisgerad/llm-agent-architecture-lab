@@ -148,20 +148,57 @@ So this architecture separates:
 
 This repository includes a small local demo under `part2/` that calls the
 Anthropic API from browser pages. To avoid browser CORS and to keep your API
-key out of the frontend, a tiny Express proxy is provided at
-`part2/proxy`.
+key out of the frontend, a tiny Express proxy is provided at `part2/proxy`.
 
-What to know:
-- The proxy reads your API key from `part2/.env`. Use
-	`part2/.env.example` as a template.
-- `part2/part2-module-design-flow.html` is the interactive demo that posts
-	to the proxy.
-- `part2/part2-developer-discipline.html` is a static guidance page and does
-	not call the API (it runs without a key).
+### Files
 
-Quick start (from a fresh clone):
+| File | API calls | Purpose |
+|------|-----------|---------|
+| `part2/part2-module-design-flow.html` | Yes — Claude via proxy | Interactive 5-step LLM→Agent→LLM module design flow |
+| `part2/part2-developer-discipline.html` | No — static | Developer discipline reference guide (tabs: Before / During / Anti-Patterns / Quick Reference / Consequences) |
+| `part2/part2-developer-discipline-agent.html` | Yes — Claude via proxy | Same discipline guide + two live demo tabs: **Consequences** and **Agent at Step 4** |
+| `part2/proxy/proxy.js` | — | Express proxy that injects the Anthropic API key and forwards to `api.anthropic.com` |
 
-1. Install and start the proxy (run these from the `part2` folder):
+---
+
+### Consequences Tab (`part2-developer-discipline-agent.html`)
+
+Shows what happens when **Step 4 stays as LLM (correct)** vs **Step 4 is replaced by an Agent (broken)** — run in parallel so both outputs appear simultaneously.
+
+| Panel | What it produces |
+|-------|-----------------|
+| **LLM Final Design** (left) | Correct design — extracts shared hooks before Admin uses them, creates `types/` folder, builds `AuthGuard` from blueprint spec |
+| **Agent Final Design** (right) | Pattern-matched design — copies existing drifted code, skips or minimises remediation, duplicates logic inline, misses blueprint intent |
+
+After both panels populate, the tab also renders:
+
+| Section | Content |
+|---------|---------|
+| **Step 5 — Execution Packages** | Side-by-side: LLM shows Part A remediation → Part B build; Agent shows no Part A with a red blocker warning |
+| **Comparison table** | 8-row metric table — Remediation phase, AuthGuard, Shared hooks, Types folder, Files created, Blueprint fidelity, Tech debt added, Estimated extra debug cycles. LLM column green, Agent column red |
+| **LLM Verdict** | Third Claude call — the LLM that produced the correct output analyses the agent's output and writes a second-person verdict to the developer naming specific files and explaining why each agent decision fails in production |
+
+---
+
+### Agent at Step 4 Tab (`part2-developer-discipline-agent.html`)
+
+Runs the full 5-step pipeline **sequentially** with the Agent substituted at Step 4 instead of the LLM. Each step's output renders in order so you can follow exactly where the design degrades.
+
+| Step | Who runs | Output shown |
+|------|----------|--------------|
+| 1 | Live Claude call — LLM | Theoretical design from blueprint: modules, file list, blueprint assumptions |
+| 2 | Live Claude call — Agent | Gap audit: BLOCKERs, WARNINGs, drift detected (codebase vs theory) |
+| 3 | Static display | Developer fix/accept decisions (same fixed scenario used throughout) |
+| 4 ⚠ | Live Claude call — **Agent** (changed) | Final design from codebase only — risky decisions highlighted red, missing remediation flagged |
+| 5 | Derived from Step 4 output | Execution package showing what actually gets built, with a fixed callout listing what breaks in production (auth bypass, duplicated hooks, missing types, inherited drift) |
+
+**The key difference from the Consequences tab:** Consequences shows Steps 4–5 as a parallel LLM vs Agent side-by-side. This tab runs the *full pipeline sequentially* — Steps 1–3 are correct, then Step 4 hands off to the Agent and you see the cascade of degradation through to Step 5.
+
+---
+
+### Quick start
+
+1. Install and start the proxy (run from the `part2` folder):
 
 ```powershell
 cd D:\projects\llm\part2
@@ -177,19 +214,18 @@ cd D:\projects\llm
 python -m http.server 8000
 ```
 
-3. Open the demo in your browser:
+3. Open a demo in your browser:
 
 ```
 http://localhost:8000/part2/part2-module-design-flow.html
+http://localhost:8000/part2/part2-developer-discipline-agent.html
 ```
 
-Notes:
-- Keep your real API key out of source control. The repo contains
-	`part2/.env.example` (placeholder) and `.gitignore` ignores `.env` and
-	`node_modules`.
-- If you do not set an API key, pages that rely on the Anthropic API will
-	receive upstream errors. `part2-developer-discipline.html` runs without a
-	key.
+> **Notes:**
+> - Keep your real API key out of source control. The repo contains `part2/.env.example` (placeholder) and `.gitignore` ignores `.env`, `node_modules`, and `my-docs/`.
+> - `part2-developer-discipline.html` and `part2-developer-discipline-agent.html` share the same tabs for Before / During / Anti-Patterns / Quick Reference. Only the agent file adds the live Consequences and Agent at Step 4 tabs.
+> - If you do not set an API key, pages that rely on the Anthropic API will receive upstream errors. `part2-developer-discipline.html` runs without a key.
+
 
 
 
