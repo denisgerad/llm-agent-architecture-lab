@@ -156,12 +156,12 @@ key out of the frontend, a tiny Express proxy is provided at `part2/proxy`.
 |------|-----------|---------|
 | `part2/part2-module-design-flow.html` | Yes — Claude via proxy | Interactive 5-step LLM→Agent→LLM module design flow |
 | `part2/part2-developer-discipline.html` | No — static | Developer discipline reference guide (tabs: Before / During / Anti-Patterns / Quick Reference / Consequences) |
-| `part2/part2-developer-discipline-agent.html` | Yes — Claude via proxy | Same discipline guide + two live demo tabs: **Consequences** and **Agent at Step 4** |
+| `part2/part2-developer-discipline.html` | No — static | Developer discipline reference guide (tabs: Before / During / Anti-Patterns / Quick Reference / Consequences) |
 | `part2/proxy/proxy.js` | — | Express proxy that injects the Anthropic API key and forwards to `api.anthropic.com` |
 
 ---
 
-### Consequences Tab (`part2-developer-discipline-agent.html`)
+### Consequences Tab
 
 Shows what happens when **Step 4 stays as LLM (correct)** vs **Step 4 is replaced by an Agent (broken)** — run in parallel so both outputs appear simultaneously.
 
@@ -205,12 +205,12 @@ python -m http.server 8000
 
 ```
 http://localhost:8000/part2/part2-module-design-flow.html
-http://localhost:8000/part2/part2-developer-discipline-agent.html
+http://localhost:8000/part2/part2-developer-discipline.html
 ```
 
 > **Notes:**
 > - Keep your real API key out of source control. The repo contains `part2/.env.example` (placeholder) and `.gitignore` ignores `.env`, `node_modules`, and `my-docs/`.
-> - `part2-developer-discipline.html` and `part2-developer-discipline-agent.html` share the same tabs for Before / During / Anti-Patterns / Quick Reference. Only the agent file adds the live Consequences and Agent at Step 4 tabs.
+> - `part2-developer-discipline.html` contains the Developer Discipline guide (static) and the Consequences content. The interactive Agent demo was removed from the repository.
 > - If you do not set an API key, pages that rely on the Anthropic API will receive upstream errors. `part2-developer-discipline.html` runs without a key.
 
 
