@@ -20,11 +20,11 @@ app.get('/health', (req, res) => {
 
 app.post('/api/claude', async (req, res) => {
   try {
-    const response = await fetch('http://localhost:3000/api/claude', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'x-api-key': KEY,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(req.body),

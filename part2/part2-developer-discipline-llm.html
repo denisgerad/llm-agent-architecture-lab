@@ -316,19 +316,19 @@ h1 em { color: var(--dev); font-style: italic; }
 
 <!-- NAV -->
 <div class="nav-tabs">
-  <div class="nav-tab active" onclick="switchSec('before', this)">
+  <div class="nav-tab active" onclick="switchSec('before')">
     <span class="tab-dot" style="background:var(--warn);box-shadow:0 0 5px var(--warn)"></span>
     Before You Start
   </div>
-  <div class="nav-tab" onclick="switchSec('during', this)">
+  <div class="nav-tab" onclick="switchSec('during')">
     <span class="tab-dot" style="background:var(--dev);box-shadow:0 0 5px var(--dev)"></span>
     During Development
   </div>
-  <div class="nav-tab" onclick="switchSec('antipatterns', this)">
+  <div class="nav-tab" onclick="switchSec('antipatterns')">
     <span class="tab-dot" style="background:var(--danger);box-shadow:0 0 5px var(--danger)"></span>
     Anti-Patterns
   </div>
-  <div class="nav-tab" onclick="switchSec('quickref', this)">
+  <div class="nav-tab" onclick="switchSec('quickref')">
     <span class="tab-dot" style="background:var(--llm);box-shadow:0 0 5px var(--llm)"></span>
     Quick Reference
   </div>
@@ -813,11 +813,11 @@ h1 em { color: var(--dev); font-style: italic; }
 </div>
 
 <script>
-function switchSec(id, el) {
+function switchSec(id) {
   document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('sec-' + id).classList.add('active');
-  if (el) el.classList.add('active');
+  event.currentTarget.classList.add('active');
   window.scrollTo({ top: document.querySelector('.nav-tabs').offsetTop - 10, behavior: 'smooth' });
 }
 

@@ -7,3 +7,6 @@
 
 # Logs
 npm-debug.log*
+
+# Private docs
+my-docs/

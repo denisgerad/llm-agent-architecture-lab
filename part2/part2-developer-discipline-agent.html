@@ -32,8 +32,81 @@
   --serif: 'Cormorant Garamond', serif;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 12px; min-height: 100vh; }
+/* ── CONSEQUENCES TAB ── */
+.run-compare-btn {
+  padding: 13px 30px; background: linear-gradient(135deg, var(--llm), var(--agent));
+  color: #fff; border: none; border-radius: 8px; font-family: var(--mono);
+  font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 1px;
+  transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+}
+.run-compare-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.run-compare-btn:disabled { background: #1a1a30; color: #333355; cursor: not-allowed; transform: none; }
+
+.compare-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;
+}
+@media (max-width: 800px) { .compare-grid { grid-template-columns: 1fr; } }
+
+.cg-col { display: flex; flex-direction: column; gap: 0; border-radius: 10px; overflow: hidden; border: 1px solid; }
+.cg-col.llm-col { border-color: rgba(167,139,250,0.25); }
+.cg-col.agent-col { border-color: rgba(251,146,60,0.25); }
+
+.cg-hdr { padding: 14px 18px; font-size: 11px; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+.llm-col .cg-hdr { background: var(--llm-dim); color: var(--llm); border-bottom: 1px solid rgba(167,139,250,0.15); }
+.agent-col .cg-hdr { background: var(--agent-dim); color: var(--agent); border-bottom: 1px solid rgba(251,146,60,0.15); }
+.cg-hdr .step-badge {
+  margin-left: auto; font-size: 9px; padding: 2px 8px; border-radius: 8px; font-weight: 700;
+}
+.llm-col .step-badge { background: rgba(167,139,250,0.15); color: var(--llm); }
+.agent-col .step-badge { background: rgba(251,146,60,0.15); color: var(--agent); }
+
+.cg-body { padding: 16px 18px; background: var(--card); flex: 1; min-height: 200px; }
+.cg-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; gap: 10px; color: var(--muted); font-size: 11px; }
+.cg-loading .loader { width: 20px; height: 20px; border-width: 2px; }
+.loader { display: inline-block; border: 2px solid rgba(255,255,255,0.08); border-top-color: currentColor; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.cg-reasoning { font-size: 11px; line-height: 1.8; color: var(--muted2); border-left: 2px solid var(--border2); padding-left: 14px; margin-bottom: 14px; }
+.cg-reasoning .r-block { margin-bottom: 10px; }
+.cg-reasoning .r-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 3px; }
+
+.cg-file-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.cg-file { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px; font-size: 11px; background: var(--card2); }
+.cg-file .f-path { color: var(--info); flex: 1; }
+.cg-file .f-action { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.llm-col .f-action { background: var(--llm-dim); color: var(--llm); }
+.agent-col .f-action { background: var(--agent-dim); color: var(--agent); }
+.cg-file .f-risk { font-size: 9px; color: var(--danger); }
+
+.cg-problem { margin-top: 8px; padding: 8px 12px; background: var(--danger-dim); border: 1px solid rgba(248,113,113,0.15); border-radius: 5px; font-size: 11px; color: var(--danger); line-height: 1.6; }
+
+/* comparison table */
+.comp-table { border: 1px solid var(--border2); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+.ct-hdr { display: grid; grid-template-columns: 2fr 1fr 1fr; background: var(--card2); padding: 11px 16px; border-bottom: 1px solid var(--border); }
+.ct-hdr-cell { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.ct-hdr-cell.llm-h { color: var(--llm); } .ct-hdr-cell.agent-h { color: var(--agent); }
+.ct-row { display: grid; grid-template-columns: 2fr 1fr 1fr; padding: 11px 16px; border-bottom: 1px solid var(--border); align-items: center; }
+.ct-row:last-child { border-bottom: none; }
+.ct-row:hover { background: rgba(255,255,255,0.015); }
+.ct-metric { font-size: 11px; color: var(--text); }
+.ct-metric small { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+.ct-val { font-size: 11px; text-align: center; }
+.ct-val.good { color: var(--dev); font-weight: 700; }
+.ct-val.bad  { color: var(--danger); font-weight: 700; }
+.ct-val.warn { color: var(--warn); }
+
+/* verdict */
+.verdict-card {
+  background: linear-gradient(135deg, rgba(167,139,250,0.06) 0%, rgba(251,146,60,0.06) 100%);
+  border: 1px solid var(--border2); border-radius: 10px; padding: 24px; margin-bottom: 24px;
+}
+.verdict-title { font-family: var(--serif); font-size: 22px; color: #f0f4ff; margin-bottom: 12px; }
+.verdict-body { font-size: 11px; color: var(--muted2); line-height: 1.85; }
+.verdict-body .hi-llm { color: var(--llm); font-weight: 700; }
+.verdict-body .hi-agent { color: var(--agent); font-weight: 700; }
+.verdict-body .hi-danger { color: var(--danger); font-weight: 700; }
+.verdict-body .hi-good { color: var(--dev); font-weight: 700; }
+
 
 /* ── PIPELINE ── */
 .pipeline {
@@ -283,6 +356,9 @@ h1 em { color: var(--dev); font-style: italic; }
 .m-dev   { background: var(--dev-dim);   color: var(--dev); }
 .m-stop  { background: var(--danger-dim);color: var(--danger); }
 .m-both  { background: rgba(167,139,250,0.07); color: var(--llm); border: 1px solid rgba(251,146,60,0.2); }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100%; }
 </style>
 </head>
 <body>
@@ -331,6 +407,10 @@ h1 em { color: var(--dev); font-style: italic; }
   <div class="nav-tab" onclick="switchSec('quickref', this)">
     <span class="tab-dot" style="background:var(--llm);box-shadow:0 0 5px var(--llm)"></span>
     Quick Reference
+  </div>
+  <div class="nav-tab" onclick="switchSec('consequences', this)">
+    <span class="tab-dot" style="background:var(--danger);box-shadow:0 0 5px var(--agent)"></span>
+    Consequences
   </div>
 </div>
 
@@ -807,12 +887,383 @@ h1 em { color: var(--dev); font-style: italic; }
         </div>
       </div>
     </div>
+  </div><!-- end sec-quickref -->
 
+  <!-- ═══════════ CONSEQUENCES ═══════════ -->
+  <div class="sec" id="sec-consequences">
+    <div class="sec-title" style="color:var(--agent)">Consequences</div>
+    <p class="sec-sub">Same scenario. Same gap report. Same developer decisions. The only difference: Step 4 uses the LLM on the left and an Agent on the right. Watch what each produces — then the LLM analyses its own output versus the agent's to explain exactly where the agent went wrong and why.</p>
+
+    <!-- Scenario context -->
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:18px;margin-bottom:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+      <div>
+        <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Scenario</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.6;">Add Admin Dashboard to React e-commerce app with user management, subscription overview, payment history</div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:2px;color:var(--danger);text-transform:uppercase;margin-bottom:8px;">Known Blockers</div>
+        <div style="font-size:11px;color:var(--muted2);line-height:1.7;">AuthGuard missing<br>useSubscription missing<br>usePayment missing<br>types/ folder missing</div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:2px;color:var(--warn);text-transform:uppercase;margin-bottom:8px;">Developer Decisions</div>
+        <div style="font-size:11px;color:var(--muted2);line-height:1.7;">Fix AuthGuard ✓<br>Fix types/ ✓<br>Fix hooks ✓<br>Accept .js services<br>Accept no barrels</div>
+      </div>
+    </div>
+
+    <button class="run-compare-btn" id="btn-compare" onclick="runComparison()">
+      <span class="loader" style="width:12px;height:12px;border-color:rgba(255,255,255,0.2);border-top-color:#fff;display:none;" id="compare-loader"></span>
+      <span id="compare-btn-text">▶ Run Parallel Comparison — LLM vs Agent</span>
+    </button>
+
+    <!-- Step 4 comparison -->
+    <div style="margin-top:28px;display:none;" id="step4-section">
+      <div style="font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <span>Step 4 — Final Design</span><span style="flex:1;height:1px;background:var(--border);display:block;"></span>
+        <span style="color:var(--llm);">LLM</span><span style="color:var(--muted)"> vs </span><span style="color:var(--agent)">Agent</span>
+      </div>
+      <div class="compare-grid">
+        <div class="cg-col llm-col">
+          <div class="cg-hdr">
+            <span>◆ LLM Final Design</span>
+            <span class="step-badge">Has blueprint context</span>
+          </div>
+          <div class="cg-body" id="llm-design-out">
+            <div class="cg-loading"><span class="loader" style="color:var(--llm)"></span><span>LLM reasoning...</span></div>
+          </div>
+        </div>
+        <div class="cg-col agent-col">
+          <div class="cg-hdr">
+            <span>◆ Agent Final Design</span>
+            <span class="step-badge">Codebase only</span>
+          </div>
+          <div class="cg-body" id="agent-design-out">
+            <div class="cg-loading"><span class="loader" style="color:var(--agent)"></span><span>Agent scanning codebase...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 comparison -->
+    <div style="display:none;" id="step5-section">
+      <div style="font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <span>Step 5 — Execution Package</span><span style="flex:1;height:1px;background:var(--border);display:block;"></span>
+        <span style="color:var(--llm);">LLM</span><span style="color:var(--muted)"> vs </span><span style="color:var(--agent)">Agent</span>
+      </div>
+      <div class="compare-grid">
+        <div class="cg-col llm-col">
+          <div class="cg-hdr"><span>◆ LLM Execution Package</span><span class="step-badge">Part A → Part B</span></div>
+          <div class="cg-body" id="llm-pkg-out"></div>
+        </div>
+        <div class="cg-col agent-col">
+          <div class="cg-hdr"><span>◆ Agent Execution Package</span><span class="step-badge">No remediation</span></div>
+          <div class="cg-body" id="agent-pkg-out"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison table -->
+    <div style="display:none;" id="comparison-section">
+      <div style="font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <span>LLM Analysis — What Went Wrong and Why</span><span style="flex:1;height:1px;background:var(--border);display:block;"></span>
+      </div>
+      <div class="comp-table">
+        <div class="ct-hdr">
+          <div class="ct-hdr-cell">Metric</div>
+          <div class="ct-hdr-cell llm-h">LLM Design</div>
+          <div class="ct-hdr-cell agent-h">Agent Design</div>
+        </div>
+        <div id="comp-table-rows"></div>
+      </div>
+      <div class="verdict-card">
+        <div class="verdict-title">LLM Verdict</div>
+        <div class="verdict-body" id="verdict-body">
+          <div class="cg-loading"><span class="loader" style="color:var(--llm)"></span><span>LLM analysing both outputs...</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-</div>
+</div><!-- end .content -->
 
 <script>
+// ── CONSEQUENCES TAB ──────────────────────────────────────────────────────
+
+const SCENARIO = {
+  blueprint: {
+    modules: ['Auth','Dashboard','Payment/Subscription','Data Layer','API Client'],
+    conventions: 'PascalCase folders, TypeScript throughout, barrel index.ts files, hooks extracted',
+    decisions: ['Supabase RLS over custom middleware','TypeScript for type safety on payment data']
+  },
+  driftedCodebase: {
+    exists: ['src/components/auth/login.tsx','src/components/auth/register.tsx','src/components/payments/Plans.tsx','src/components/payments/Checkout.tsx','src/components/Dashboard/DashboardLayout.tsx','src/components/Dashboard/UserProfile.tsx','src/components/Dashboard/Stats.tsx','src/hooks/useAuth.ts','src/utils/supabase.js','src/utils/razorpay.js'],
+    missing: ['AuthGuard.tsx','useSubscription.ts','usePayment.ts','types/ folder'],
+    drift: ['Auth/ → auth/ (lowercase)','Subscription/ → payments/ (renamed)','services/ → utils/ (.js not .ts)']
+  },
+  devDecisions: { fix: ['AuthGuard','types/ folder','useSubscription','usePayment'], accept: ['.js services','no barrel files'] },
+  request: 'Admin Dashboard with user management, subscription overview, and payment history with refund capability'
+};
+
+const API = 'http://localhost:3000/api/claude';
+
+async function callClaude(system, user) {
+  const r = await fetch(API, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:3000, system, messages:[{role:'user',content:user}] })
+  });
+  if (!r.ok) throw new Error(`API ${r.status}`);
+  const d = await r.json();
+  return d.content.map(b=>b.text||'').join('');
+}
+
+function repairJSON(raw) {
+  let text = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/,'').trim();
+  try{return JSON.parse(text);}catch(e){}
+  const inStr=s=>{let i=false,e=false;for(const c of s){if(e){e=false;continue;}if(c==='\\'){e=true;continue;}if(c==='"')i=!i;}return i;};
+  let safe=text;
+  for(let i=text.length-1;i>text.length*0.5;i--){const sl=text.slice(0,i);if(!inStr(sl)){safe=sl.replace(/[,\s]+$/,'');break;}}
+  let opens=[],i2=false,e2=false;
+  for(const c of safe){if(e2){e2=false;continue;}if(c==='\\'){e2=true;continue;}if(c==='"'){i2=!i2;continue;}if(i2)continue;if(c==='{')opens.push('}');if(c==='[')opens.push(']');if(c==='}'||c===']')opens.pop();}
+  try{return JSON.parse(safe+opens.reverse().join(''));}catch(e3){}
+  throw new Error('JSON parse failed');
+}
+
+async function runComparison() {
+  const btn = document.getElementById('btn-compare');
+  const loader = document.getElementById('compare-loader');
+  const btnText = document.getElementById('compare-btn-text');
+  btn.disabled = true;
+  loader.style.display = 'inline-block';
+  btnText.textContent = 'Running parallel calls...';
+
+  document.getElementById('step4-section').style.display = 'block';
+
+  // ── PARALLEL: LLM design + Agent design ──────────────────────────────────
+  const llmSystem = `You are a senior architect with full knowledge of the original project blueprint.
+Blueprint: ${JSON.stringify(SCENARIO.blueprint)}
+Drifted codebase: ${JSON.stringify(SCENARIO.driftedCodebase)}
+Developer gap decisions — FIX: ${SCENARIO.devDecisions.fix.join(', ')} | ACCEPT: ${SCENARIO.devDecisions.accept.join(', ')}
+Request: "${SCENARIO.request}"
+
+You know WHY the original design made every choice. Design the Admin Dashboard correctly — extract shared hooks before Admin uses them, create types/ folder before Admin types, build AuthGuard from design spec before Admin routes.
+
+Output ONLY valid JSON:
+{
+  "approach": "2 sentence description of your design approach referencing blueprint intent",
+  "remediationFirst": [
+    {"step":1,"file":"exact/path/file.tsx","action":"CREATE","reason":"why this must exist before Admin"}
+  ],
+  "adminFiles": [
+    {"file":"src/components/Admin/filename.tsx","purpose":"what it does","uses":"existing files it imports"}
+  ],
+  "keyDecisions": [
+    {"decision":"what you decided","why":"reason grounded in blueprint intent","avoids":"what problem this prevents"}
+  ]
+}`;
+
+  const agentSystem = `You are an AI coding agent. You have access to the actual codebase only — no design documents, no original blueprint.
+Actual codebase files: ${SCENARIO.driftedCodebase.exists.join(', ')}
+Missing files you noticed: ${SCENARIO.driftedCodebase.missing.join(', ')}
+Developer said to fix: ${SCENARIO.devDecisions.fix.join(', ')} and accept: ${SCENARIO.devDecisions.accept.join(', ')}
+Task: Build Admin Dashboard with user management, subscription overview, payment history.
+
+You work from what exists. You follow existing patterns in the codebase. You build what you can see.
+
+Output ONLY valid JSON:
+{
+  "approach": "2 sentence description of how you approach this from the codebase",
+  "remediationFirst": [
+    {"step":1,"file":"exact/path/file.tsx","action":"CREATE","reason":"why"}
+  ],
+  "adminFiles": [
+    {"file":"src/components/Admin/filename.tsx","purpose":"what it does","uses":"existing files or inline logic"}
+  ],
+  "keyDecisions": [
+    {"decision":"what you decided","why":"reason based on existing code patterns","avoids":"what you tried to avoid"}
+  ]
+}`;
+
+  let llmResult = null, agentResult = null;
+
+  try {
+    [llmResult, agentResult] = await Promise.all([
+      callClaude(llmSystem, 'Generate the Final Design. Output ONLY the JSON.').then(r => repairJSON(r)),
+      callClaude(agentSystem, 'Generate the Final Design from the codebase. Output ONLY the JSON.').then(r => repairJSON(r))
+    ]);
+  } catch(e) {
+    alert('Comparison failed: ' + e.message);
+    btn.disabled = false; loader.style.display = 'none'; btnText.textContent = '↺ Retry';
+    return;
+  }
+
+  renderDesign('llm-design-out', llmResult, 'llm');
+  renderDesign('agent-design-out', agentResult, 'agent');
+
+  // ── Step 5 packages ───────────────────────────────────────────────────────
+  document.getElementById('step5-section').style.display = 'block';
+  renderPackage('llm-pkg-out', llmResult, 'llm');
+  renderPackage('agent-pkg-out', agentResult, 'agent');
+
+  // ── Comparison table (static — derived from known outcomes) ───────────────
+  document.getElementById('comparison-section').style.display = 'block';
+  renderCompTable(llmResult, agentResult);
+
+  // ── Third call: LLM analyses both ─────────────────────────────────────────
+  btnText.textContent = 'LLM analysing both outputs...';
+  try {
+    const verdictSystem = `You are the same LLM that produced the correct Admin Dashboard design. You are now analysing your own output vs an agent's output to teach developers the consequences of using an agent in Step 4 instead of an LLM.
+
+Your correct design: ${JSON.stringify(llmResult)}
+Agent's design: ${JSON.stringify(agentResult)}
+
+Write a verdict that:
+1. Identifies specifically where the agent went wrong (exact decisions, exact files)
+2. Explains WHY the agent made those choices (it only sees codebase, not intent)
+3. States what would happen in production for each agent mistake
+4. Names the discipline that prevents each mistake
+
+Write in second person to the developer. Be specific. Reference actual file names. 3-4 paragraphs.
+Return plain text, no JSON, no markdown headers.`;
+
+    const verdictRaw = await callClaude(verdictSystem, 'Write the verdict now.');
+    document.getElementById('verdict-body').innerHTML = verdictRaw
+      .replace(/LLM/g, '<span class="hi-llm">LLM</span>')
+      .replace(/agent/gi, '<span class="hi-agent">agent</span>')
+      .replace(/production/gi, '<span class="hi-danger">production</span>')
+      .replace(/AuthGuard/g, '<span class="hi-danger">AuthGuard</span>')
+      .replace(/useSubscription|usePayment/g, m => `<span class="hi-danger">${m}</span>`)
+      .replace(/types\//g, '<span class="hi-danger">types/</span>')
+      .replace(/correct|correctly|right approach/gi, m => `<span class="hi-good">${m}</span>`)
+      .split('\n\n').map(p => p.trim() ? `<p style="margin-bottom:12px;">${p}</p>` : '').join('');
+  } catch(e) {
+    document.getElementById('verdict-body').textContent = 'Verdict generation failed: ' + e.message;
+  }
+
+  btn.disabled = false; loader.style.display = 'none'; btnText.textContent = '↺ Run Again';
+}
+
+function renderDesign(elId, data, mode) {
+  const el = document.getElementById(elId);
+  const col = mode === 'llm' ? 'var(--llm)' : 'var(--agent)';
+  if (!data) { el.innerHTML = `<div style="color:var(--danger);font-size:11px;">Failed to parse response</div>`; return; }
+
+  let html = '';
+  if (data.approach) {
+    html += `<div class="cg-reasoning"><div class="r-block"><div class="r-label">Approach</div><div style="color:var(--muted2);font-size:11px;line-height:1.7;">${data.approach}</div></div></div>`;
+  }
+
+  if ((data.remediationFirst||[]).length) {
+    html += `<div style="font-size:9px;letter-spacing:2px;color:var(--warn);margin-bottom:8px;text-transform:uppercase;">Remediation First</div>
+    <div class="cg-file-list">`;
+    data.remediationFirst.forEach(f => {
+      html += `<div class="cg-file"><span class="f-path">${f.file}</span><span class="f-action">FIX</span></div>`;
+      if (f.reason) html += `<div style="font-size:10px;color:var(--muted);padding:0 10px 4px 26px;">${f.reason}</div>`;
+    });
+    html += `</div>`;
+  } else {
+    if (mode === 'agent') html += `<div class="cg-problem">⚠ No remediation phase — agent jumps directly to build</div>`;
+  }
+
+  if ((data.adminFiles||[]).length) {
+    html += `<div style="font-size:9px;letter-spacing:2px;color:${col};margin:12px 0 8px;text-transform:uppercase;">Admin Files</div>
+    <div class="cg-file-list">`;
+    data.adminFiles.forEach(f => {
+      const hasRisk = f.uses && (f.uses.toLowerCase().includes('inline') || f.uses.toLowerCase().includes('copy') || f.uses.toLowerCase().includes('checkout'));
+      html += `<div class="cg-file">
+        <span class="f-path">${f.file}</span>
+        <span class="f-action">${f.purpose?.slice(0,20)||'CREATE'}</span>
+      </div>`;
+      if (f.uses) html += `<div style="font-size:10px;padding:0 10px 4px 26px;${hasRisk?'color:var(--danger)':'color:var(--muted)'};">uses: ${f.uses}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  if ((data.keyDecisions||[]).length) {
+    html += `<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin:12px 0 8px;text-transform:uppercase;">Key Decisions</div>`;
+    data.keyDecisions.forEach(d => {
+      const isRisky = mode === 'agent' && (d.why?.toLowerCase().includes('existing') || d.why?.toLowerCase().includes('pattern') || d.why?.toLowerCase().includes('already'));
+      html += `<div style="padding:8px 10px;background:var(--card2);border-radius:5px;margin-bottom:6px;border-left:2px solid ${isRisky?'var(--danger)':col};">
+        <div style="font-size:11px;font-weight:700;color:${isRisky?'var(--danger)':col};margin-bottom:3px;">${d.decision}</div>
+        <div style="font-size:10px;color:var(--muted2);">${d.why}</div>
+        ${d.avoids?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">avoids: ${d.avoids}</div>`:''}
+      </div>`;
+    });
+  }
+
+  el.innerHTML = html;
+}
+
+function renderPackage(elId, data, mode) {
+  const el = document.getElementById(elId);
+  const col = mode === 'llm' ? 'var(--llm)' : 'var(--agent)';
+  const remediation = data?.remediationFirst || [];
+  const adminFiles  = data?.adminFiles || [];
+  const total = remediation.length + adminFiles.length;
+
+  let html = `<div style="font-size:10px;color:var(--muted2);margin-bottom:12px;">
+    ${mode === 'llm'
+      ? `<span style="color:var(--dev)">Part A (${remediation.length} tasks) → Part B (${adminFiles.length} files)</span>`
+      : `<span style="color:var(--agent)">No Part A — ${adminFiles.length} files direct</span>${remediation.length === 0 ? ' <span style="color:var(--danger)">⚠ blockers unresolved</span>' : ''}`
+    }
+  </div>`;
+
+  if (remediation.length) {
+    html += `<div style="font-size:9px;letter-spacing:1px;color:var(--warn);margin-bottom:6px;text-transform:uppercase;">Part A — Remediation</div>`;
+    remediation.forEach((f,i) => {
+      html += `<div style="display:flex;gap:8px;padding:5px 8px;background:var(--card2);border-radius:4px;margin-bottom:3px;font-size:10px;">
+        <span style="color:var(--muted);min-width:20px;">${String(i+1).padStart(2,'0')}.</span>
+        <span style="color:var(--warn);flex:1;">${f.file}</span>
+        <span style="color:var(--warn);font-size:9px;">FIX</span>
+      </div>`;
+    });
+  } else if (mode === 'agent') {
+    html += `<div style="padding:8px 10px;background:var(--danger-dim);border:1px solid rgba(248,113,113,0.15);border-radius:5px;font-size:10px;color:var(--danger);margin-bottom:10px;">✗ No remediation — AuthGuard, hooks, types/ all unresolved before build starts</div>`;
+  }
+
+  html += `<div style="font-size:9px;letter-spacing:1px;color:${col};margin:10px 0 6px;text-transform:uppercase;">Part B — Admin Build</div>`;
+  adminFiles.forEach((f,i) => {
+    html += `<div style="display:flex;gap:8px;padding:5px 8px;background:var(--card2);border-radius:4px;margin-bottom:3px;font-size:10px;">
+      <span style="color:var(--muted);min-width:20px;">${String(i+1).padStart(2,'0')}.</span>
+      <span style="color:var(--info);flex:1;">${f.file||f.path||'?'}</span>
+      <span style="color:${col};font-size:9px;">CREATE</span>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function renderCompTable(llm, agent) {
+  const llmRem   = (llm?.remediationFirst||[]).length;
+  const agentRem = (agent?.remediationFirst||[]).length;
+  const llmFiles  = (llm?.adminFiles||[]).length;
+  const agentFiles = (agent?.adminFiles||[]).length;
+
+  const llmHasExtract  = JSON.stringify(llm||{}).toLowerCase().includes('usesubscription') || JSON.stringify(llm||{}).toLowerCase().includes('usepayment');
+  const agentHasExtract= JSON.stringify(agent||{}).toLowerCase().includes('usesubscription') || JSON.stringify(agent||{}).toLowerCase().includes('usepayment');
+  const agentInline    = JSON.stringify(agent||{}).toLowerCase().includes('inline') || JSON.stringify(agent||{}).toLowerCase().includes('copy') || JSON.stringify(agent||{}).toLowerCase().includes('checkout');
+  const llmAuthGuard   = JSON.stringify(llm||{}).toLowerCase().includes('authguard');
+  const agentAuthGuard = JSON.stringify(agent||{}).toLowerCase().includes('authguard');
+  const llmTypes       = JSON.stringify(llm||{}).toLowerCase().includes('types/');
+  const agentTypes     = JSON.stringify(agent||{}).toLowerCase().includes('types/');
+
+  const rows = [
+    { metric:'Remediation phase', sub:'Before Admin build starts', llm: llmRem > 0 ? `✓ ${llmRem} tasks` : '✗ None', llmClass:'good', agent: agentRem > 0 ? `✓ ${agentRem} tasks` : '✗ Skipped', agentClass: agentRem > 0 ? 'good' : 'bad' },
+    { metric:'AuthGuard', sub:'Route protection for Admin', llm: llmAuthGuard ? '✓ Built first':'✓ Design spec referenced', llmClass:'good', agent: agentAuthGuard ? '~ Ad-hoc inline':'✗ Missing or inline', agentClass:'bad' },
+    { metric:'Shared hooks', sub:'useSubscription / usePayment', llm: llmHasExtract ? '✓ Extracted to hooks':'✓ Planned correctly', llmClass:'good', agent: agentInline ? '✗ Logic duplicated':'~ Pattern copied', agentClass:'bad' },
+    { metric:'Types folder', sub:'Shared type definitions', llm: llmTypes ? '✓ Created before Admin':'✓ Planned in design', llmClass:'good', agent: agentTypes ? '~ Inline types':'✗ Missing / inline', agentClass: agentTypes ? 'warn' : 'bad' },
+    { metric:'Admin files created', sub:'New files in Part B', llm:`${llmFiles} files`, llmClass:'', agent:`${agentFiles} files`, agentClass:'' },
+    { metric:'Blueprint fidelity', sub:'Aligns with original design intent', llm:'✓ High', llmClass:'good', agent:'✗ Low — follows drift patterns', agentClass:'bad' },
+    { metric:'Tech debt added', sub:'New problems introduced', llm:'✓ None', llmClass:'good', agent:'✗ Duplicated logic, inline types, weak auth', agentClass:'bad' },
+    { metric:'Estimated extra debug cycles', sub:'Before stable production', llm:'0', llmClass:'good', agent:'4–6 cycles', agentClass:'bad' },
+  ];
+
+  document.getElementById('comp-table-rows').innerHTML = rows.map(r => `
+    <div class="ct-row">
+      <div class="ct-metric">${r.metric}<small>${r.sub}</small></div>
+      <div class="ct-val ${r.llmClass}">${r.llm}</div>
+      <div class="ct-val ${r.agentClass}">${r.agent}</div>
+    </div>`).join('');
+}
+
 function switchSec(id, el) {
   document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
