@@ -1,18 +1,18 @@
 // api/claude.js
 // ─────────────────────────────────────────────────────────────────────────────
-// Vercel Serverless Function — Anthropic API Proxy
+// Vercel Serverless Function — Mistral API Proxy
 //
 // WHY THIS EXISTS:
-//   Browsers cannot call the Anthropic API directly because:
-//   1. CORS: Anthropic's API does not allow browser origins
+//   Browsers cannot call the Mistral API directly because:
+//   1. CORS: Mistral's API does not allow browser origins
 //   2. Security: the API key must never appear in client-side code
 //
 // HOW IT WORKS:
-//   Browser  →  POST /api/claude  →  this function  →  Anthropic API
+//   Browser  →  POST /api/claude  →  this function  →  Mistral API
 //                                          ↓
-//   Browser  ←  JSON response     ←  this function  ←  Anthropic API
+//   Browser  ←  JSON response     ←  this function  ←  Mistral API
 //
-// The API key lives in Vercel's environment variables (ANTHROPIC_API_KEY).
+// The API key lives in Vercel's environment variables (MISTRAL_API_KEY).
 // It is never sent to the browser.
 //
 // VERCEL ROUTING:
@@ -20,8 +20,7 @@
 //   POST /api/claude → this file. No Express, no server process.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
-const ANTHROPIC_VERSION = '2023-06-01';
+const MISTRAL_API = 'https://api.mistral.ai/v1/chat/completions';
 
 // Allowed origins — add your Vercel deployment URL here after first deploy
 // e.g. 'https://your-project.vercel.app'
@@ -52,12 +51,12 @@ export default async function handler(req, res) {
   }
 
   // ── Validate API key is configured ─────────────────────────────────────────
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) {
-    console.error('ANTHROPIC_API_KEY environment variable is not set');
+    console.error('MISTRAL_API_KEY environment variable is not set');
     return res.status(500).json({
       error: 'Server configuration error: API key not configured. '
-           + 'Add ANTHROPIC_API_KEY in your Vercel project settings.'
+           + 'Add MISTRAL_API_KEY in your Vercel project settings.'
     });
   }
 
@@ -68,31 +67,34 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid request: messages array required' });
   }
 
-  // ── Forward to Anthropic API ────────────────────────────────────────────────
+  // ── Forward to Mistral API ────────────────────────────────────────────────
   try {
-    const anthropicRes = await fetch(ANTHROPIC_API, {
+    const mistralRes = await fetch(MISTRAL_API, {
       method: 'POST',
       headers: {
-        'Content-Type':         'application/json',
-        'x-api-key':            apiKey,
-        'anthropic-version':    ANTHROPIC_VERSION,
-      },
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`
+    },
       body: JSON.stringify({
-        model:      model      || 'claude-sonnet-4-20250514',
-        max_tokens: max_tokens || 3000,
-        system:     system     || undefined,
-        messages,
-      }),
-    });
+  model: "mistral-large-latest",
+  messages: [
+    { role: "system", content: system },
+    { role: "user", content: messages }
+    ],
+    max_tokens: 2000,
+    temperature: 0.2
+})
+      })
+    
 
-    // Forward Anthropic's response status and body directly
-    const data = await anthropicRes.json();
+    // Forward Mistral's response status and body directly
+    const data = await mistralRes.json();
 
-    if (!anthropicRes.ok) {
-      // Anthropic returned an error — forward it with context
-      console.error('Anthropic API error:', anthropicRes.status, data);
-      return res.status(anthropicRes.status).json({
-        error: data.error?.message || 'Anthropic API error',
+    if (!mistralRes.ok) {
+      // Mistral returned an error — forward it with context
+      console.error('Mistral API error:', mistralRes.status, data);
+      return res.status(mistralRes.status).json({
+        error: data.error?.message || 'Mistral API error',
         details: data,
       });
     }
@@ -102,7 +104,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('Proxy fetch error:', err);
     return res.status(500).json({
-      error: 'Failed to reach Anthropic API',
+      error: 'Failed to reach Mistral API',
       details: err.message,
     });
   }
