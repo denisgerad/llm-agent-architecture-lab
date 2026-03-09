@@ -411,6 +411,17 @@ textarea.intent-input::placeholder { color: var(--muted); }
 .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
 .nav-back { padding: 10px 20px; background: transparent; border: 1px solid var(--border2); color: var(--muted2); font-family: var(--mono); font-size: 11px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
 .nav-back:hover { border-color: var(--border2); color: var(--text); }
+
+/* ── KEY BUTTON ── */
+.key-btn {
+  margin-left: auto; padding: 6px 14px; border-radius: 6px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  cursor: pointer; border: 1px solid rgba(167,139,250,0.3);
+  color: var(--llm); background: rgba(167,139,250,0.08);
+  transition: background 0.2s; white-space: nowrap; letter-spacing: 1px;
+}
+.key-btn:hover { background: rgba(167,139,250,0.2); }
+.key-btn.unlocked { border-color: rgba(52,211,153,0.3); color: var(--dev); background: rgba(52,211,153,0.06); }
 </style>
 </head>
 <body>
@@ -422,6 +433,7 @@ textarea.intent-input::placeholder { color: var(--muted); }
   <div class="ps now"><div class="ps-num">2</div><div class="ps-info"><div class="ps-tag">Part 2 — Now</div><div class="ps-name">Module Design</div></div></div>
   <div class="ps-arrow">›</div>
   <div class="ps next"><div class="ps-num">3</div><div class="ps-info"><div class="ps-tag">Next</div><div class="ps-name">Agent Execution</div></div></div>
+  <button class="key-btn" id="key-btn" onclick="showAccessModal()">&#128274; Access Code</button>
 </div>
 
 <!-- HEADER -->
@@ -851,14 +863,12 @@ async function callClaude(systemPrompt, userMsg) {
   if (!response.ok) {
     let msg = `API error ${response.status}`;
     try { const e = await response.json(); if (e.error) msg = e.error; } catch(_) {}
-    // If invalid code, clear it and re-prompt next time
-    if (response.status === 401) {
-      localStorage.removeItem('access_code');
-      const errEl = document.getElementById('ac-error');
-      if (errEl) errEl.textContent = 'Incorrect code. Try again.';
-      document.getElementById('ac-overlay').classList.add('open');
-      document.getElementById('ac-input').focus();
-    }
+    // Clear bad code and re-show modal on any auth or server error
+    localStorage.removeItem('access_code');
+    updateKeyBtn(false);
+    const errEl = document.getElementById('ac-error');
+    if (errEl) errEl.textContent = msg;
+    showAccessModal();
     throw new Error(msg);
   }
 
@@ -1297,20 +1307,37 @@ function copyPkg() {
   });
 }
 // ── ACCESS CODE MODAL WIRING ──────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  const input   = document.getElementById('ac-input');
-  const submitBtn = document.getElementById('ac-submit');
-  const errEl   = document.getElementById('ac-error');
-  const clearEl = document.getElementById('ac-clear');
+function updateKeyBtn(hasCode) {
+  const btn = document.getElementById('key-btn');
+  if (!btn) return;
+  if (hasCode) {
+    btn.innerHTML = '&#128275; Access Code';
+    btn.classList.add('unlocked');
+  } else {
+    btn.innerHTML = '&#128274; Access Code';
+    btn.classList.remove('unlocked');
+  }
+}
 
-  // Show clear link if a code is already saved
-  if (localStorage.getItem('access_code')) clearEl.style.display = 'inline';
+document.addEventListener('DOMContentLoaded', () => {
+  const input     = document.getElementById('ac-input');
+  const submitBtn = document.getElementById('ac-submit');
+  const errEl     = document.getElementById('ac-error');
+  const clearEl   = document.getElementById('ac-clear');
+
+  const hasSaved = !!localStorage.getItem('access_code');
+  updateKeyBtn(hasSaved);
+  if (clearEl) clearEl.style.display = hasSaved ? 'inline' : 'none';
+
+  // Auto-show modal on load if no code is saved
+  if (!hasSaved) showAccessModal();
 
   function submit() {
     const code = input.value.trim();
     if (!code) { errEl.textContent = 'Please enter a code.'; return; }
     localStorage.setItem('access_code', code);
-    clearEl.style.display = 'inline';
+    updateKeyBtn(true);
+    if (clearEl) clearEl.style.display = 'inline';
     closeAccessModal(code);
   }
 
@@ -1319,12 +1346,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   clearEl.addEventListener('click', () => {
     localStorage.removeItem('access_code');
+    updateKeyBtn(false);
     clearEl.style.display = 'none';
     input.value = '';
     errEl.textContent = '';
   });
 
-  // Close on overlay backdrop click
   document.getElementById('ac-overlay').addEventListener('click', (e) => {
     if (e.target === document.getElementById('ac-overlay')) closeAccessModal(null);
   });
