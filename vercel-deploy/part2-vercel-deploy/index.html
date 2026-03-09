@@ -76,48 +76,6 @@ h1 em { color: var(--llm); font-style: italic; }
 .pill-dot { width: 7px; height: 7px; border-radius: 50%; }
 .pill-llm .pill-dot { background: var(--llm); } .pill-agent .pill-dot { background: var(--agent); } .pill-dev .pill-dot { background: var(--dev); }
 
-/* ── ACCESS CODE MODAL ── */
-.ac-overlay {
-  display: none; position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
-  align-items: center; justify-content: center;
-}
-.ac-overlay.open { display: flex; }
-.ac-box {
-  background: var(--card); border: 1px solid rgba(167,139,250,0.3);
-  border-radius: 12px; padding: 32px 28px; width: 380px; max-width: 92vw;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
-}
-.ac-title {
-  font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
-  color: var(--llm); margin-bottom: 8px;
-}
-.ac-desc { font-size: 12px; color: var(--muted2); margin-bottom: 20px; line-height: 1.6; }
-.ac-input-row { display: flex; gap: 8px; }
-.ac-input {
-  flex: 1; background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 6px; padding: 10px 12px; font-family: var(--mono);
-  font-size: 13px; color: var(--text); outline: none; letter-spacing: 2px;
-}
-.ac-input:focus { border-color: rgba(167,139,250,0.5); }
-.ac-submit {
-  padding: 10px 20px; background: rgba(167,139,250,0.15);
-  border: 1px solid rgba(167,139,250,0.4); border-radius: 6px;
-  color: var(--llm); font-family: var(--mono); font-size: 11px;
-  font-weight: 700; cursor: pointer; letter-spacing: 1px;
-  transition: background 0.2s; white-space: nowrap;
-}
-.ac-submit:hover { background: rgba(167,139,250,0.25); }
-.ac-error {
-  margin-top: 10px; font-size: 11px; color: var(--danger);
-  min-height: 16px;
-}
-.ac-clear {
-  margin-top: 14px; font-size: 10px; color: var(--muted); cursor: pointer;
-  text-decoration: underline; display: inline-block;
-}
-.ac-clear:hover { color: var(--muted2); }
-
 /* ── STEP PROGRESS BAR ── */
 .step-bar {
   display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
@@ -411,17 +369,6 @@ textarea.intent-input::placeholder { color: var(--muted); }
 .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
 .nav-back { padding: 10px 20px; background: transparent; border: 1px solid var(--border2); color: var(--muted2); font-family: var(--mono); font-size: 11px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
 .nav-back:hover { border-color: var(--border2); color: var(--text); }
-
-/* ── KEY BUTTON ── */
-.key-btn {
-  margin-left: auto; padding: 6px 14px; border-radius: 6px;
-  font-family: var(--mono); font-size: 10px; font-weight: 700;
-  cursor: pointer; border: 1px solid rgba(167,139,250,0.3);
-  color: var(--llm); background: rgba(167,139,250,0.08);
-  transition: background 0.2s; white-space: nowrap; letter-spacing: 1px;
-}
-.key-btn:hover { background: rgba(167,139,250,0.2); }
-.key-btn.unlocked { border-color: rgba(52,211,153,0.3); color: var(--dev); background: rgba(52,211,153,0.06); }
 </style>
 </head>
 <body>
@@ -433,7 +380,6 @@ textarea.intent-input::placeholder { color: var(--muted); }
   <div class="ps now"><div class="ps-num">2</div><div class="ps-info"><div class="ps-tag">Part 2 — Now</div><div class="ps-name">Module Design</div></div></div>
   <div class="ps-arrow">›</div>
   <div class="ps next"><div class="ps-num">3</div><div class="ps-info"><div class="ps-tag">Next</div><div class="ps-name">Agent Execution</div></div></div>
-  <button class="key-btn" id="key-btn" onclick="showAccessModal()">&#128274; Access Code</button>
 </div>
 
 <!-- HEADER -->
@@ -447,20 +393,6 @@ textarea.intent-input::placeholder { color: var(--muted); }
     <div class="mode-pill pill-dev"><span class="pill-dot"></span>Developer — Makes gap decisions</div>
   </div>
 </header>
-
-<!-- ACCESS CODE MODAL -->
-<div class="ac-overlay" id="ac-overlay">
-  <div class="ac-box">
-    <div class="ac-title">Access Required</div>
-    <p class="ac-desc">Enter your access code to use the AI features.</p>
-    <div class="ac-input-row">
-      <input class="ac-input" id="ac-input" type="password" placeholder="Access code…" autocomplete="off" />
-      <button class="ac-submit" id="ac-submit">Unlock</button>
-    </div>
-    <div class="ac-error" id="ac-error"></div>
-    <span class="ac-clear" id="ac-clear" style="display:none">Clear saved code</span>
-  </div>
-</div>
 
 <!-- STEP BAR -->
 <div class="step-bar">
@@ -813,65 +745,26 @@ function goStep(n) {
   if (n === 3) renderDecisions();
 }
 
-// ── ACCESS CODE MODAL ──────────────────────────────────────────────
-let _resolveCode = null;
-
-function showAccessModal() {
-  return new Promise((resolve) => {
-    _resolveCode = resolve;
-    const overlay = document.getElementById('ac-overlay');
-    const input   = document.getElementById('ac-input');
-    const errEl   = document.getElementById('ac-error');
-    errEl.textContent = '';
-    input.value = '';
-    overlay.classList.add('open');
-    setTimeout(() => input.focus(), 80);
-  });
-}
-
-function closeAccessModal(code) {
-  document.getElementById('ac-overlay').classList.remove('open');
-  if (_resolveCode) { _resolveCode(code); _resolveCode = null; }
-}
-
-// ── API CALL ───────────────────────────────────────────────
-async function callClaude(systemPrompt, userMsg) {
+// ── API CALL ───────────────────────────────────────────────────────────────
+//async function callClaude(systemPrompt, userMsg) {
+  async function callClaude(systemPrompt, userMsg) {
   const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000/api/claude'
     : '/api/claude';
-
-  let accessCode = localStorage.getItem('access_code') || '';
-  if (!accessCode) {
-    accessCode = await showAccessModal();
-    if (!accessCode) throw new Error('Access code required.');
-  }
-
   const response = await fetch(API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "mistral-large-latest",
       max_tokens: 3000,
-      accessCode,
+      system: systemPrompt,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMsg }
       ]
     })
   });
-
-  if (!response.ok) {
-    let msg = `API error ${response.status}`;
-    try { const e = await response.json(); if (e.error) msg = e.error; } catch(_) {}
-    // Clear bad code and re-show modal on any auth or server error
-    localStorage.removeItem('access_code');
-    updateKeyBtn(false);
-    const errEl = document.getElementById('ac-error');
-    if (errEl) errEl.textContent = msg;
-    showAccessModal();
-    throw new Error(msg);
-  }
-
+  if (!response.ok) throw new Error(`API ${response.status}`);
   const data = await response.json();
   return data.choices[0].message.content;
 }
@@ -1306,56 +1199,6 @@ function copyPkg() {
     setTimeout(() => event.target.textContent = '⎘ copy', 1800);
   });
 }
-// ── ACCESS CODE MODAL WIRING ──────────────────────────────────────────
-function updateKeyBtn(hasCode) {
-  const btn = document.getElementById('key-btn');
-  if (!btn) return;
-  if (hasCode) {
-    btn.innerHTML = '&#128275; Access Code';
-    btn.classList.add('unlocked');
-  } else {
-    btn.innerHTML = '&#128274; Access Code';
-    btn.classList.remove('unlocked');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const input     = document.getElementById('ac-input');
-  const submitBtn = document.getElementById('ac-submit');
-  const errEl     = document.getElementById('ac-error');
-  const clearEl   = document.getElementById('ac-clear');
-
-  const hasSaved = !!localStorage.getItem('access_code');
-  updateKeyBtn(hasSaved);
-  if (clearEl) clearEl.style.display = hasSaved ? 'inline' : 'none';
-
-  // Auto-show modal on load if no code is saved
-  if (!hasSaved) showAccessModal();
-
-  function submit() {
-    const code = input.value.trim();
-    if (!code) { errEl.textContent = 'Please enter a code.'; return; }
-    localStorage.setItem('access_code', code);
-    updateKeyBtn(true);
-    if (clearEl) clearEl.style.display = 'inline';
-    closeAccessModal(code);
-  }
-
-  submitBtn.addEventListener('click', submit);
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
-
-  clearEl.addEventListener('click', () => {
-    localStorage.removeItem('access_code');
-    updateKeyBtn(false);
-    clearEl.style.display = 'none';
-    input.value = '';
-    errEl.textContent = '';
-  });
-
-  document.getElementById('ac-overlay').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('ac-overlay')) closeAccessModal(null);
-  });
-});
 </script>
 </body>
 </html>
