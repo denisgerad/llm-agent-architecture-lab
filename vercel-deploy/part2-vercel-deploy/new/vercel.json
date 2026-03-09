@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "name": "llm-agent-architecture-lab",
+  "functions": {
+    "api/claude.js": {
+      "maxDuration": 60
+    }
+  }
+}
