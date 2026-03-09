@@ -53,19 +53,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ── Validate API key is configured ─────────────────────────────────────────
-  //const apiKey = process.env.ANTHROPIC_API_KEY;
-  const apiKey = process.env.MISTRAL_API_KEY;
+  // ── Resolve API key: user-supplied takes priority, env var is fallback ──────
+  const { model, max_tokens, system, messages, userApiKey } = req.body;
+  const apiKey = (userApiKey && userApiKey.trim()) || process.env.MISTRAL_API_KEY;
   if (!apiKey) {
-    console.error('MISTRAL_API_KEY environment variable is not set');
-    return res.status(500).json({
-      error: 'Server configuration error: API key not configured. '
-           + 'Add MISTRAL_API_KEY in your Vercel project settings.'
+    return res.status(401).json({
+      error: 'No API key provided. Enter your Mistral API key in the app.'
     });
   }
-
-  // ── Extract and validate request body ──────────────────────────────────────
-  const { model, max_tokens, system, messages } = req.body;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'Invalid request: messages array required' });
