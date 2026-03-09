@@ -416,8 +416,8 @@ textarea.intent-input::placeholder { color: var(--muted); }
     <div class="mode-pill pill-dev"><span class="pill-dot"></span>Developer — Makes gap decisions</div>
   </div>
   <div class="api-key-bar">
-    <span class="api-key-label">Mistral Key</span>
-    <input class="api-key-input" id="api-key-input" type="password" placeholder="Enter your Mistral API key…" autocomplete="off" />
+    <span class="api-key-label">Access Code</span>
+    <input class="api-key-input" id="api-key-input" type="password" placeholder="Enter access code…" autocomplete="off" />
     <button class="api-key-btn" id="api-key-save">Save</button>
     <span class="api-key-saved" id="api-key-saved">✓ Saved</span>
   </div>
@@ -779,9 +779,9 @@ function goStep(n) {
   const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000/api/claude'
     : '/api/claude';
-  const userApiKey = localStorage.getItem('mistral_api_key') || '';
-  if (!userApiKey) {
-    throw new Error('Please enter your Mistral API key in the field at the top of the page.');
+  const accessCode = localStorage.getItem('access_code') || '';
+  if (!accessCode) {
+    throw new Error('Please enter your access code in the field at the top of the page.');
   }
   const response = await fetch(API, {
     method: "POST",
@@ -789,7 +789,7 @@ function goStep(n) {
     body: JSON.stringify({
       model: "mistral-large-latest",
       max_tokens: 3000,
-      userApiKey,
+      accessCode,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMsg }
@@ -1231,20 +1231,20 @@ function copyPkg() {
     setTimeout(() => event.target.textContent = '⎘ copy', 1800);
   });
 }
-// ── API KEY SAVE / RESTORE ───────────────────────────────────────────────
+// ── ACCESS CODE SAVE / RESTORE ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const input  = document.getElementById('api-key-input');
   const btn    = document.getElementById('api-key-save');
   const notice = document.getElementById('api-key-saved');
-  const saved  = localStorage.getItem('mistral_api_key');
+  const saved  = localStorage.getItem('access_code');
   if (saved) {
     input.value = saved;
     notice.style.display = 'inline';
   }
   btn.addEventListener('click', () => {
-    const key = input.value.trim();
-    if (key) {
-      localStorage.setItem('mistral_api_key', key);
+    const code = input.value.trim();
+    if (code) {
+      localStorage.setItem('access_code', code);
       notice.style.display = 'inline';
       setTimeout(() => { notice.style.display = 'none'; }, 2000);
     }

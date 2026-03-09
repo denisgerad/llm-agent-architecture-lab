@@ -53,13 +53,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ── Resolve API key: user-supplied takes priority, env var is fallback ──────
-  const { model, max_tokens, system, messages, userApiKey } = req.body;
-  const apiKey = (userApiKey && userApiKey.trim()) || process.env.MISTRAL_API_KEY;
+  // ── Validate access code ───────────────────────────────────────────────────
+  const { model, max_tokens, messages, accessCode } = req.body;
+  const validCode = process.env.ACCESS_CODE;
+  if (!validCode) {
+    console.error('ACCESS_CODE environment variable is not set');
+    return res.status(500).json({ error: 'Server configuration error: ACCESS_CODE not set in Vercel.' });
+  }
+  if (!accessCode || accessCode.trim() !== validCode.trim()) {
+    return res.status(401).json({ error: 'Invalid access code.' });
+  }
+
+  // ── Resolve Mistral API key from Vercel env ────────────────────────────────
+  const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) {
-    return res.status(401).json({
-      error: 'No API key provided. Enter your Mistral API key in the app.'
-    });
+    console.error('MISTRAL_API_KEY environment variable is not set');
+    return res.status(500).json({ error: 'Server configuration error: MISTRAL_API_KEY not set in Vercel.' });
   }
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
