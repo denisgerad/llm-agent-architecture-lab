@@ -98,6 +98,18 @@ h1 em { color: var(--llm); font-style: italic; }
 }
 .api-key-btn:hover { background: rgba(167,139,250,0.16); }
 .api-key-saved { font-size: 9px; color: var(--dev); white-space: nowrap; display: none; }
+.api-key-bar.shake {
+  animation: shake 0.4s ease;
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 2px rgba(248,113,113,0.25);
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
 
 /* ── STEP PROGRESS BAR ── */
 .step-bar {
@@ -415,7 +427,7 @@ textarea.intent-input::placeholder { color: var(--muted); }
     <div class="mode-pill pill-agent"><span class="pill-dot"></span>Agent — Knows actual codebase</div>
     <div class="mode-pill pill-dev"><span class="pill-dot"></span>Developer — Makes gap decisions</div>
   </div>
-  <div class="api-key-bar">
+  <div class="api-key-bar" id="api-key-bar">
     <span class="api-key-label">Access Code</span>
     <input class="api-key-input" id="api-key-input" type="password" placeholder="Enter access code…" autocomplete="off" />
     <button class="api-key-btn" id="api-key-save">Save</button>
@@ -775,13 +787,21 @@ function goStep(n) {
 }
 
 // ── API CALL ───────────────────────────────────────────────────────────────
-  async function callClaude(systemPrompt, userMsg) {
+async function callClaude(systemPrompt, userMsg) {
   const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000/api/claude'
     : '/api/claude';
   const accessCode = localStorage.getItem('access_code') || '';
   if (!accessCode) {
-    throw new Error('Please enter your access code in the field at the top of the page.');
+    const bar = document.getElementById('api-key-bar');
+    const input = document.getElementById('api-key-input');
+    bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    bar.classList.remove('shake');
+    void bar.offsetWidth; // reflow to restart animation
+    bar.classList.add('shake');
+    bar.addEventListener('animationend', () => bar.classList.remove('shake'), { once: true });
+    input.focus();
+    throw new Error('Enter your access code in the bar at the top of the page.');
   }
   const response = await fetch(API, {
     method: "POST",
@@ -796,7 +816,14 @@ function goStep(n) {
       ]
     })
   });
-  if (!response.ok) throw new Error(`API ${response.status}`);
+  if (!response.ok) {
+    let msg = `API error ${response.status}`;
+    try {
+      const errData = await response.json();
+      if (errData.error) msg = errData.error;
+    } catch(_) {}
+    throw new Error(msg);
+  }
   const data = await response.json();
   return data.choices[0].message.content;
 }
